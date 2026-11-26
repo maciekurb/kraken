@@ -1,0 +1,50 @@
+:root {
+  /* Authentic Feed the Kraken Board Game Palette */
+  --parchment-bg: #efe4cd;
+  --parchment-card: #f7efde;
+  --parchment-deep: #dfd0b0;
+  --parchment-border: #bfa87e;
+
+  --wood-dark: #1d120c;
+  --wood-mid: #321f14;
+  --wood-light: #4d301e;
+
+  --crimson-banner: #641d22;
+  --crimson-deep: #481317;
+  --crimson-accent: #8c232b;
+
+  --brass-gold: #c99b3b;
+  --brass-light: #efd287;
+  --brass-dark: #8c661c;
+
+  --ink-primary: #211610;
+  --ink-secondary: #4e3b2c;
+  --ink-muted: #76614d;
+
+  /* Factions */
+  --sailor-blue: #1c5885;
+  --sailor-light: #dcecf7;
+  --pirate-red: #8c1d24;
+  --pirate-light: #f8dfdf;
+  --cult-gold: #b48a26;
+  --cult-gold-light: #faf1d4;
+  --cultist-green: #1d6447;
+  --cultist-light: #d9efe4;
+
+  /* Map Actions Teal */
+  --ocean-teal: #498d9e;
+  --ocean-dark: #255666;
+  --ocean-light: #def0f4;
+
+  /* Typography */
+  --font-display: 'Cinzel', Georgia, serif;
+  --font-pirate: 'Pirata One', 'Cinzel', Georgia, serif;
+  --font-body: 'Alegreya', Georgia, 'Times New Roman', serif;
+
+  /* Radii & Elevation */
+  --radius-sm: 6px;
+  --radius-md: 12px;
+  --radius-lg: 18px;
+  --shadow-card: 0 4px 14px rgba(29, 18, 12, 0.16), inset 0 1px 0 rgba(255, 250, 238, 0.7);
+  --shadow-heavy: 0 12px 32px rgba(18, 10, 6, 0.45);
+}
