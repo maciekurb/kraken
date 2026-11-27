@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { logger } from '../debug/logger';
 import { getMutinyThreshold, getOffDutyCount } from '../engine/rules';
 import type { PlayerView, PublicEventLogEntry, PublicFactionGroup, RitualType } from '../engine/types';
 import { useI18n } from '../i18n/I18nContext';
@@ -427,7 +428,10 @@ export const GameScreen: React.FC<GameScreenProps> = ({
         <button
           type="button"
           className={tab === 'secret' ? 'active' : ''}
-          onClick={() => setTab('secret')}
+          onClick={() => {
+            logger.debug('UI', 'GameScreen tab -> secret');
+            setTab('secret');
+          }}
           data-testid="nav-tab-secret"
         >
           <WaxSealIcon size={20} />
@@ -436,7 +440,10 @@ export const GameScreen: React.FC<GameScreenProps> = ({
         <button
           type="button"
           className={tab === 'crew' ? 'active' : ''}
-          onClick={() => setTab('crew')}
+          onClick={() => {
+            logger.debug('UI', 'GameScreen tab -> crew');
+            setTab('crew');
+          }}
           data-testid="nav-tab-crew"
         >
           <NavCultUprisingIcon size={20} />
@@ -445,7 +452,10 @@ export const GameScreen: React.FC<GameScreenProps> = ({
         <button
           type="button"
           className={tab === 'aid' ? 'active' : ''}
-          onClick={() => setTab('aid')}
+          onClick={() => {
+            logger.debug('UI', 'GameScreen tab -> aid');
+            setTab('aid');
+          }}
           data-testid="nav-tab-aid"
         >
           <CompassIcon size={20} />

@@ -1,6 +1,8 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { DebugLogPanel, useLogEntries } from './components/DebugLogPanel';
 import { CompassIcon } from './components/icons/GameIcons';
 import { PlayerAid } from './components/PlayerAid';
+import { logger } from './debug/logger';
 import { useWakeLock } from './hooks/useWakeLock';
 import { useI18n } from './i18n/I18nContext';
 import { useGameSession } from './net/gameSession';
@@ -13,11 +15,42 @@ export const App: React.FC = () => {
   const session = useGameSession();
   const wakeLock = useWakeLock();
   const [standaloneAid, setStandaloneAid] = useState(false);
+  const [logsOpen, setLogsOpen] = useState(false);
+  const logEntries = useLogEntries();
+
+  const errorCount = useMemo(
+    () => logEntries.filter((entry) => entry.level === 'ERROR').length,
+    [logEntries]
+  );
 
   const initialJoinCode = useMemo(() => {
     if (typeof window === 'undefined') return '';
     return (new URLSearchParams(window.location.search).get('join') ?? '').toUpperCase();
   }, []);
+
+  useEffect(() => {
+    if (initialJoinCode) {
+      logger.info('APP', 'Detected ?join= query parameter on load', { initialJoinCode });
+    }
+  }, [initialJoinCode]);
+
+  const currentScreen = !session.view
+    ? standaloneAid
+      ? 'standalone_aid'
+      : 'home'
+    : session.view.phase === 'lobby'
+      ? 'lobby'
+      : session.view.phase === 'ended'
+        ? 'game_over'
+        : 'game';
+
+  useEffect(() => {
+    logger.info('UI', `Active screen -> ${currentScreen}`, {
+      roomCode: session.view?.roomCode ?? null,
+      phase: session.view?.phase ?? null,
+      connectionState: session.connectionState,
+    });
+  }, [currentScreen, session.view?.roomCode, session.view?.phase, session.connectionState]);
 
   const connLabel =
     session.connectionState === 'connected'
@@ -58,6 +91,20 @@ export const App: React.FC = () => {
               {wakeLock.active ? '☀' : '☾'}
             </button>
           )}
+
+          <button
+            type="button"
+            className={`conn-pill log-pill-btn ${errorCount > 0 ? 'has-error' : ''}`}
+            onClick={() => {
+              logger.debug('UI', 'Opened diagnostic log panel');
+              setLogsOpen(true);
+            }}
+            title={t('debugLogsTitle')}
+            data-testid="open-logs-btn"
+          >
+            <span>{t('debugLogsBtn')}</span>
+            {errorCount > 0 && <span className="log-error-badge">{errorCount}</span>}
+          </button>
 
           <div className="lang-toggle" role="group" aria-label={t('langLabel')}>
             <button
@@ -109,6 +156,7 @@ export const App: React.FC = () => {
               onDiscardSaved={session.discardSavedSession}
               onOpenAid={() => setStandaloneAid(true)}
               onClearError={session.clearError}
+              onOpenLogs={() => setLogsOpen(true)}
             />
           )}
         </main>
@@ -117,8 +165,11 @@ export const App: React.FC = () => {
           <LobbyScreen
             view={session.view}
             transportMode={session.transportMode}
+            connectionState={session.connectionState}
+            error={session.error}
             hostActions={session.hostActions}
             onLeave={session.leaveRoom}
+            onOpenLogs={() => setLogsOpen(true)}
           />
         </main>
       ) : (
@@ -129,6 +180,8 @@ export const App: React.FC = () => {
           onLeave={session.leaveRoom}
         />
       )}
+
+      <DebugLogPanel open={logsOpen} onClose={() => setLogsOpen(false)} />
     </div>
   );
 };

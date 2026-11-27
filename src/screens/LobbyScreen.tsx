@@ -1,23 +1,30 @@
 import QRCode from 'qrcode';
 import React, { useEffect, useMemo, useState } from 'react';
+import { logger } from '../debug/logger';
 import { MIN_PLAYERS } from '../engine/rules';
 import type { PlayerView } from '../engine/types';
 import { useI18n } from '../i18n/I18nContext';
 import type { HostActions } from '../net/gameSession';
-import type { TransportMode } from '../net/protocol';
+import type { ConnectionState, TransportMode } from '../net/protocol';
 
 interface LobbyScreenProps {
   view: PlayerView;
   transportMode: TransportMode;
+  connectionState: ConnectionState;
+  error: string | null;
   hostActions: HostActions;
   onLeave: () => void;
+  onOpenLogs: () => void;
 }
 
 export const LobbyScreen: React.FC<LobbyScreenProps> = ({
   view,
   transportMode,
+  connectionState,
+  error,
   hostActions,
   onLeave,
+  onOpenLogs,
 }) => {
   const { t } = useI18n();
   const [qrSvg, setQrSvg] = useState<string>('');
@@ -43,23 +50,28 @@ export const LobbyScreen: React.FC<LobbyScreenProps> = ({
       color: { dark: '#1D120C', light: '#FFFFFF' },
     })
       .then((svg) => {
-        if (active) setQrSvg(svg);
+        if (active) {
+          setQrSvg(svg);
+          logger.debug('UI', 'Lobby QR code generated', { roomCode: view.roomCode, joinUrl });
+        }
       })
-      .catch(() => {
+      .catch((err) => {
+        logger.warn('UI', 'Lobby QR code generation failed', err);
         if (active) setQrSvg('');
       });
     return () => {
       active = false;
     };
-  }, [joinUrl]);
+  }, [joinUrl, view.roomCode]);
 
   const handleCopy = async () => {
     try {
       await navigator.clipboard.writeText(joinUrl);
       setCopied(true);
+      logger.info('UI', 'Copied invite link to clipboard', { joinUrl });
       setTimeout(() => setCopied(false), 2000);
-    } catch {
-      // ignore clipboard errors
+    } catch (err) {
+      logger.warn('UI', 'Failed to copy invite link to clipboard', err);
     }
   };
 
@@ -73,6 +85,28 @@ export const LobbyScreen: React.FC<LobbyScreenProps> = ({
           {view.roomCode}
         </span>
       </div>
+
+      {error && (
+        <div className="notice-box" role="alert" data-testid="lobby-error">
+          <div>
+            {t('errGeneric')} ({error})
+          </div>
+          <button
+            type="button"
+            className="btn btn-outline btn-sm"
+            style={{ marginTop: '0.45rem' }}
+            onClick={onOpenLogs}
+          >
+            {t('openLogsInline')}
+          </button>
+        </div>
+      )}
+
+      {!error && connectionState !== 'connected' && (
+        <div className="notice-box gold small-text" data-testid="lobby-conn-status">
+          {connectionState === 'reconnecting' ? t('connReconnecting') : t('connConnecting')}
+        </div>
+      )}
 
       {/* Share / QR Card */}
       <div className="parchment-card brass center">

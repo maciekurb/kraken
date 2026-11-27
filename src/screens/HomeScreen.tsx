@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { logger } from '../debug/logger';
 import type { VoyageMode } from '../engine/types';
 import { useI18n } from '../i18n/I18nContext';
 import type { ConnectionState, TransportMode } from '../net/protocol';
@@ -17,6 +18,7 @@ interface HomeScreenProps {
   onDiscardSaved: () => void;
   onOpenAid: () => void;
   onClearError: () => void;
+  onOpenLogs: () => void;
 }
 
 export const HomeScreen: React.FC<HomeScreenProps> = ({
@@ -31,6 +33,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
   onDiscardSaved,
   onOpenAid,
   onClearError,
+  onOpenLogs,
 }) => {
   const { t } = useI18n();
   const [mode, setMode] = useState<'host' | 'join'>(initialJoinCode ? 'join' : 'host');
@@ -60,11 +63,27 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onClearError();
-    if (!name.trim()) return;
+    if (!name.trim()) {
+      logger.warn('UI', 'HomeScreen form submit ignored: empty player name', { mode });
+      return;
+    }
     if (mode === 'host') {
+      logger.info('UI', 'User submitted Host Room form', {
+        name: name.trim(),
+        voyageMode,
+        transportMode,
+      });
       onHost(name.trim(), voyageMode);
     } else {
-      if (!roomCode.trim()) return;
+      if (!roomCode.trim()) {
+        logger.warn('UI', 'HomeScreen join submit ignored: empty room code');
+        return;
+      }
+      logger.info('UI', 'User submitted Join Room form', {
+        roomCode: roomCode.trim(),
+        name: name.trim(),
+        transportMode,
+      });
       onJoin(roomCode.trim(), name.trim());
     }
   };
@@ -128,7 +147,29 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
 
       {errorMessage && (
         <div className="notice-box" role="alert" data-testid="home-error">
-          {errorMessage}
+          <div>{errorMessage}</div>
+          <button
+            type="button"
+            className="btn btn-outline btn-sm"
+            style={{ marginTop: '0.45rem' }}
+            onClick={onOpenLogs}
+          >
+            {t('openLogsInline')}
+          </button>
+        </div>
+      )}
+
+      {!errorMessage && connectionState === 'reconnecting' && (
+        <div className="notice-box gold small-text" role="status" data-testid="home-reconnecting">
+          <div>{t('reconnectingBanner')}</div>
+          <button
+            type="button"
+            className="btn btn-outline btn-sm"
+            style={{ marginTop: '0.45rem' }}
+            onClick={onOpenLogs}
+          >
+            {t('openLogsInline')}
+          </button>
         </div>
       )}
 

@@ -1,4 +1,5 @@
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import { logger } from '../debug/logger';
 import { translations, type Lang, type TranslationKey } from './translations';
 
 interface I18nContextValue {
@@ -28,6 +29,7 @@ export const I18nProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [lang, setLangState] = useState<Lang>(detectInitialLang);
 
   const setLang = useCallback((next: Lang) => {
+    logger.debug('I18N', `Language switched -> ${next}`);
     setLangState(next);
     try {
       window.localStorage.setItem(LANG_STORAGE_KEY, next);

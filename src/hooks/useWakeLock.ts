@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { logger } from '../debug/logger';
 
 interface WakeLockSentinelLike {
   released: boolean;
@@ -21,8 +22,10 @@ export function useWakeLock() {
       if (!nav.wakeLock) return;
       sentinelRef.current = await nav.wakeLock.request('screen');
       setActive(true);
-    } catch {
+      logger.debug('WAKELOCK', 'Screen WakeLock acquired');
+    } catch (err) {
       setActive(false);
+      logger.warn('WAKELOCK', 'Screen WakeLock request failed', err);
     }
   }, [supported]);
 
@@ -30,8 +33,9 @@ export function useWakeLock() {
     if (sentinelRef.current && !sentinelRef.current.released) {
       try {
         await sentinelRef.current.release();
-      } catch {
-        // ignore
+        logger.debug('WAKELOCK', 'Screen WakeLock released');
+      } catch (err) {
+        logger.warn('WAKELOCK', 'Screen WakeLock release failed', err);
       }
     }
     sentinelRef.current = null;
