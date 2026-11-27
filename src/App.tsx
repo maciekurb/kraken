@@ -199,6 +199,7 @@ export const App: React.FC = () => {
         onSetTheme={setTheme}
         wakeLockSupported={wakeLock.supported}
         wakeLockActive={wakeLock.active}
+        wakeLockFailed={wakeLock.failed}
         onToggleWakeLock={() => void wakeLock.toggle()}
         errorCount={errorCount}
         onOpenLogs={() => {

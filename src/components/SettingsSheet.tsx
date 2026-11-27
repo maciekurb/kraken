@@ -10,6 +10,7 @@ interface SettingsSheetProps {
   onSetTheme: (theme: ThemeMode) => void;
   wakeLockSupported: boolean;
   wakeLockActive: boolean;
+  wakeLockFailed: boolean;
   onToggleWakeLock: () => void;
   errorCount: number;
   onOpenLogs: () => void;
@@ -22,6 +23,7 @@ export const SettingsSheet: React.FC<SettingsSheetProps> = ({
   onSetTheme,
   wakeLockSupported,
   wakeLockActive,
+  wakeLockFailed,
   onToggleWakeLock,
   errorCount,
   onOpenLogs,
@@ -93,23 +95,42 @@ export const SettingsSheet: React.FC<SettingsSheetProps> = ({
       {/* Screen Wake Lock */}
       <button
         type="button"
-        className="settings-row-btn"
+        role="switch"
+        aria-checked={wakeLockActive}
+        className={`settings-row-btn ${wakeLockActive ? 'is-active' : ''}`}
         disabled={!wakeLockSupported}
         onClick={onToggleWakeLock}
-        aria-pressed={wakeLockActive}
         data-testid="settings-wakelock-btn"
       >
-        <div>
+        <div className="settings-row-content">
           <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '0.86rem' }}>
             {wakeLockActive ? '☀' : '☾'} {t('wakeLockTitle')}
           </div>
-          <div className="muted" style={{ fontSize: '0.8rem' }}>
-            {wakeLockSupported ? t('wakeLockDesc') : t('wakeLockUnsupported')}
+          <div
+            className={wakeLockFailed ? 'settings-row-error' : 'muted'}
+            style={{ fontSize: '0.8rem' }}
+          >
+            {!wakeLockSupported
+              ? t('wakeLockUnsupported')
+              : wakeLockFailed
+                ? t('wakeLockFailed')
+                : t('wakeLockDesc')}
           </div>
         </div>
-        <span className={`badge ${wakeLockActive ? 'badge-captain' : 'badge-eliminated'}`}>
-          {wakeLockSupported ? (wakeLockActive ? 'ON' : 'OFF') : '—'}
-        </span>
+        <div className="settings-toggle-wrap">
+          <span
+            className={`settings-toggle-state ${wakeLockActive ? 'is-on' : ''}`}
+            data-testid="settings-wakelock-state"
+          >
+            {wakeLockSupported ? (wakeLockActive ? 'ON' : 'OFF') : '—'}
+          </span>
+          <span
+            className={`toggle-switch ${wakeLockActive ? 'is-on' : ''}`}
+            aria-hidden="true"
+          >
+            <span className="toggle-switch-thumb" />
+          </span>
+        </div>
       </button>
 
       {/* Diagnostic Logs */}
@@ -123,7 +144,7 @@ export const SettingsSheet: React.FC<SettingsSheetProps> = ({
         }}
         data-testid="open-logs-btn"
       >
-        <div>
+        <div className="settings-row-content">
           <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '0.86rem' }}>
             {t('diagnosticsTitle')}
           </div>
@@ -131,7 +152,7 @@ export const SettingsSheet: React.FC<SettingsSheetProps> = ({
             {t('diagnosticsDesc')}
           </div>
         </div>
-        <div className="row-gap" style={{ gap: '0.35rem' }}>
+        <div className="row-gap" style={{ gap: '0.35rem', flexShrink: 0 }}>
           {errorCount > 0 && <span className="log-error-badge">{errorCount}</span>}
           <span className="muted" aria-hidden="true">→</span>
         </div>
