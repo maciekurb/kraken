@@ -43,7 +43,7 @@ test('UI/UX polish: Settings sheet portal & scroll lock, Candlelight Dark Mode, 
     metaColor: document.querySelector('meta[name="theme-color"]')?.getAttribute('content'),
   }));
   expect(darkState.theme).toBe('dark');
-  expect(darkState.metaColor).toBe('#120b07');
+  expect(darkState.metaColor).toBe('#110a06');
 
   // Open Debug Logs from Settings sheet -> verify it portals to document.body and unlocks body scroll on close
   await page.getByTestId('open-logs-btn').click();

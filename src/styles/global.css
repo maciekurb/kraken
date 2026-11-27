@@ -145,19 +145,47 @@ textarea {
   box-shadow: 0 0 42px rgba(16, 9, 5, 0.26);
 }
 
+/* Real DOM plate at y=0 so iOS 26 WebKit top-edge sampler reads solid wood instead of translucent beige */
+#ios-top-edge-plate {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
+  height: max(env(safe-area-inset-top, 0px), 2px);
+  background-color: var(--wood-dark);
+  z-index: 40;
+  pointer-events: none;
+}
+
+@media (max-width: 600px), (display-mode: standalone) {
+  html,
+  body {
+    background-color: var(--wood-dark);
+    background-image: none;
+    overscroll-behavior-y: none;
+  }
+}
+
 .top-bar {
   position: sticky;
   top: 0;
-  z-index: 30;
-  background: linear-gradient(180deg, var(--wood-mid) 0%, var(--wood-dark) 100%);
+  z-index: 35;
+  background-color: var(--wood-dark);
   color: #f8f0df;
   border-bottom: 3px solid var(--brass-dark);
-  padding: calc(0.45rem + env(safe-area-inset-top)) 0.7rem 0.45rem;
+  padding: calc(0.5rem + env(safe-area-inset-top)) 0.7rem 0.5rem;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 0.45rem;
   box-shadow: 0 3px 14px rgba(0, 0, 0, 0.38);
+}
+
+@media (display-mode: standalone) {
+  .top-bar {
+    padding-top: calc(1.1rem + env(safe-area-inset-top));
+  }
 }
 
 .top-bar-brand {

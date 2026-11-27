@@ -4,8 +4,8 @@ export type ThemeMode = 'light' | 'dark';
 
 const STORAGE_KEY = 'ftk_theme_v1';
 const THEME_COLORS: Record<ThemeMode, string> = {
-  light: '#24160e',
-  dark: '#120b07',
+  light: '#1d120c',
+  dark: '#110a06',
 };
 
 function readSavedTheme(): ThemeMode {
