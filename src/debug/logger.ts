@@ -7,6 +7,8 @@ export type LogScope =
   | 'STORAGE'
   | 'PEER_HOST'
   | 'PEER_CLIENT'
+  | 'WSS_RELAY'
+  | 'HYBRID_NET'
   | 'LOCAL_NET'
   | 'ENGINE'
   | 'PEERJS'

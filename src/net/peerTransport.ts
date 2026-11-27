@@ -19,9 +19,14 @@ const PEER_CONFIG = {
       { urls: 'stun:stun.l.google.com:19302' },
       { urls: 'stun:stun1.l.google.com:19302' },
       { urls: 'stun:stun2.l.google.com:19302' },
+      { urls: 'stun:stun.cloudflare.com:3478' },
     ],
   },
 };
+
+export interface PeerClientHooks {
+  onIceBlocked?: (reason: string) => void;
+}
 
 function summarizeMessage(msg: ClientToHostMessage | HostToClientMessage): Record<string, unknown> {
   switch (msg.type) {
@@ -74,8 +79,14 @@ function getConnSnapshot(conn: DataConnection | null): Record<string, unknown> {
   };
 }
 
-function attachRtcDiagnostics(scope: LogScope, tag: string, conn: DataConnection): void {
+function attachRtcDiagnostics(
+  scope: LogScope,
+  tag: string,
+  conn: DataConnection,
+  onZeroCandidates?: () => void
+): void {
   logger.debug(scope, `${tag}: DataConnection created`, getConnSnapshot(conn));
+  let localCandidateCount = 0;
 
   conn.on('iceStateChanged', (state) => {
     const level = state === 'failed' || state === 'disconnected' ? 'warn' : 'info';
@@ -127,6 +138,13 @@ function attachRtcDiagnostics(scope: LogScope, tag: string, conn: DataConnection
 
   pc.addEventListener('icegatheringstatechange', () => {
     logger.debug(scope, `${tag}: RTCPeerConnection iceGatheringState -> ${pc.iceGatheringState}`);
+    if (pc.iceGatheringState === 'complete' && localCandidateCount === 0) {
+      logger.warn(
+        scope,
+        `${tag}: ICE gathering completed with ZERO local candidates (WebRTC UDP likely blocked by browser privacy, extension, VPN, or Private Relay)`
+      );
+      onZeroCandidates?.();
+    }
   });
 
   pc.addEventListener('signalingstatechange', () => {
@@ -135,9 +153,10 @@ function attachRtcDiagnostics(scope: LogScope, tag: string, conn: DataConnection
 
   pc.addEventListener('icecandidate', (ev) => {
     if (!ev.candidate) {
-      logger.debug(scope, `${tag}: ICE candidate gathering complete`);
+      logger.debug(scope, `${tag}: ICE candidate gathering complete`, { localCandidateCount });
       return;
     }
+    localCandidateCount += 1;
     const c = ev.candidate;
     logger.debug(scope, `${tag}: Local ICE candidate`, {
       type: c.type,
@@ -170,6 +189,7 @@ export class PeerHostTransport implements HostTransport {
   readonly mode = 'peerjs' as const;
   private peer: Peer | null = null;
   private connections = new Map<string, DataConnection>();
+  private staleTimers = new Map<string, ReturnType<typeof setTimeout>>();
   private destroyed = false;
 
   start(roomCode: string, callbacks: HostTransportCallbacks): void {
@@ -185,18 +205,17 @@ export class PeerHostTransport implements HostTransport {
     this.peer = peer;
 
     peer.on('open', (assignedId) => {
+      if (this.destroyed || this.peer !== peer) return;
       logger.info('PEER_HOST', 'Host PeerJS signaling open', {
         assignedId,
         roomCode: roomCode.toUpperCase(),
-        destroyed: this.destroyed,
       });
       updateDiagnosticContext({ peerId: assignedId });
-      if (!this.destroyed) {
-        callbacks.onReady(roomCode.toUpperCase());
-      }
+      callbacks.onReady(roomCode.toUpperCase());
     });
 
     peer.on('connection', (conn) => {
+      if (this.destroyed || this.peer !== peer) return;
       const peerKey = conn.peer;
       logger.info('PEER_HOST', 'Incoming DataConnection from client', {
         peerKey,
@@ -204,18 +223,46 @@ export class PeerHostTransport implements HostTransport {
         connOpen: conn.open,
         existingCount: this.connections.size,
       });
+
+      // Clean up any stale timer for this peerKey
+      const oldTimer = this.staleTimers.get(peerKey);
+      if (oldTimer) {
+        clearTimeout(oldTimer);
+        this.staleTimers.delete(peerKey);
+      }
+
       this.connections.set(peerKey, conn);
       attachRtcDiagnostics('PEER_HOST', `host<-${peerKey.slice(-6)}`, conn);
 
+      // Reap half-open incoming connections that never complete ICE within 15s
+      const staleTimer = setTimeout(() => {
+        this.staleTimers.delete(peerKey);
+        if (!conn.open && this.connections.get(peerKey) === conn) {
+          logger.debug('PEER_HOST', 'Closing stale unopened DataConnection', {
+            peerKey,
+            connectionId: conn.connectionId,
+          });
+          this.connections.delete(peerKey);
+          try {
+            conn.close();
+          } catch {
+            // ignore
+          }
+        }
+      }, 15000);
+      this.staleTimers.set(peerKey, staleTimer);
+
       conn.on('open', () => {
+        const t = this.staleTimers.get(peerKey);
+        if (t) {
+          clearTimeout(t);
+          this.staleTimers.delete(peerKey);
+        }
         logger.info('PEER_HOST', 'Client DataConnection open', getConnSnapshot(conn));
       });
 
       conn.on('data', (raw) => {
-        if (this.destroyed) {
-          logger.debug('PEER_HOST', 'Ignoring data after destroy', { peerKey });
-          return;
-        }
+        if (this.destroyed || this.peer !== peer) return;
         if (raw && typeof raw === 'object' && 'type' in raw) {
           const msg = raw as ClientToHostMessage;
           logger.debug('PEER_HOST', 'Received message from client', {
@@ -228,12 +275,16 @@ export class PeerHostTransport implements HostTransport {
           logger.warn('PEER_HOST', 'Received unrecognized payload from client', {
             peerKey,
             payloadType: typeof raw,
-            raw,
           });
         }
       });
 
       conn.on('close', () => {
+        const t = this.staleTimers.get(peerKey);
+        if (t) {
+          clearTimeout(t);
+          this.staleTimers.delete(peerKey);
+        }
         logger.warn('PEER_HOST', 'Client DataConnection closed', getConnSnapshot(conn));
         if (this.connections.get(peerKey) === conn) {
           this.connections.delete(peerKey);
@@ -242,6 +293,11 @@ export class PeerHostTransport implements HostTransport {
       });
 
       conn.on('error', (err) => {
+        const t = this.staleTimers.get(peerKey);
+        if (t) {
+          clearTimeout(t);
+          this.staleTimers.delete(peerKey);
+        }
         logger.error('PEER_HOST', 'Client DataConnection error', {
           peerKey,
           error: err,
@@ -255,12 +311,12 @@ export class PeerHostTransport implements HostTransport {
     });
 
     peer.on('disconnected', () => {
+      if (this.destroyed || this.peer !== peer) return;
       logger.warn('PEER_HOST', 'Host PeerJS signaling disconnected', {
-        destroyed: this.destroyed,
         peerDestroyed: peer.destroyed,
         activeConnections: this.connections.size,
       });
-      if (!this.destroyed && peer && !peer.destroyed) {
+      if (!peer.destroyed) {
         try {
           logger.info('PEER_HOST', 'Attempting Host PeerJS signaling reconnect');
           peer.reconnect();
@@ -271,17 +327,17 @@ export class PeerHostTransport implements HostTransport {
     });
 
     peer.on('close', () => {
+      if (this.peer !== peer) return;
       logger.warn('PEER_HOST', 'Host PeerJS peer closed', { destroyed: this.destroyed });
     });
 
     peer.on('error', (err) => {
+      if (this.destroyed || this.peer !== peer) return;
       logger.error('PEER_HOST', 'Host PeerJS error event', {
         type: err.type,
         message: err.message,
-        destroyed: this.destroyed,
         error: err,
       });
-      if (this.destroyed) return;
       callbacks.onError(err.type || err.message || 'peer_error');
     });
   }
@@ -332,6 +388,10 @@ export class PeerHostTransport implements HostTransport {
       openConnections: this.connections.size,
     });
     this.destroyed = true;
+    for (const timer of this.staleTimers.values()) {
+      clearTimeout(timer);
+    }
+    this.staleTimers.clear();
     for (const conn of this.connections.values()) {
       try {
         conn.close();
@@ -341,14 +401,15 @@ export class PeerHostTransport implements HostTransport {
     }
     this.connections.clear();
     if (this.peer) {
+      const oldPeer = this.peer;
+      this.peer = null;
       try {
-        this.peer.destroy();
+        oldPeer.removeAllListeners();
+        oldPeer.destroy();
       } catch {
         // ignore
       }
-      this.peer = null;
     }
-    updateDiagnosticContext({ peerId: null });
   }
 }
 
@@ -358,10 +419,16 @@ export class PeerClientTransport implements ClientTransport {
   private conn: DataConnection | null = null;
   private roomCode = '';
   private callbacks: ClientTransportCallbacks | null = null;
+  private hooks: PeerClientHooks;
   private destroyed = false;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+  private connectTimeout: ReturnType<typeof setTimeout> | null = null;
   private heartbeatTimer: ReturnType<typeof setInterval> | null = null;
   private retryCount = 0;
+
+  constructor(hooks: PeerClientHooks = {}) {
+    this.hooks = hooks;
+  }
 
   connect(roomCode: string, callbacks: ClientTransportCallbacks): void {
     this.destroyed = false;
@@ -374,6 +441,40 @@ export class PeerClientTransport implements ClientTransport {
       iceServers: PEER_CONFIG.config.iceServers,
     });
     this.openPeer();
+  }
+
+  private clearConnectTimeout(): void {
+    if (this.connectTimeout) {
+      clearTimeout(this.connectTimeout);
+      this.connectTimeout = null;
+    }
+  }
+
+  private disposeCurrentPeer(): void {
+    this.clearConnectTimeout();
+    this.stopHeartbeat();
+    if (this.conn) {
+      const oldConn = this.conn;
+      this.conn = null;
+      try {
+        oldConn.removeAllListeners();
+        oldConn.close();
+      } catch {
+        // ignore
+      }
+    }
+    if (this.peer) {
+      const oldPeer = this.peer;
+      this.peer = null;
+      logger.debug('PEER_CLIENT', 'Disposing previous client Peer instance cleanly');
+      try {
+        // Detach listeners BEFORE destroy so synchronous 'disconnected'/'close' events don't schedule a bogus reconnect!
+        oldPeer.removeAllListeners();
+        oldPeer.destroy();
+      } catch {
+        // ignore
+      }
+    }
   }
 
   private openPeer(): void {
@@ -389,40 +490,31 @@ export class PeerClientTransport implements ClientTransport {
     });
     this.callbacks.onStateChange(nextState);
 
-    if (this.peer) {
-      logger.debug('PEER_CLIENT', 'Destroying previous client Peer instance before recreating');
-      try {
-        this.peer.destroy();
-      } catch {
-        // ignore
-      }
-      this.peer = null;
-    }
+    this.disposeCurrentPeer();
 
     const peer = new Peer(PEER_CONFIG);
     this.peer = peer;
 
     peer.on('open', (assignedId) => {
+      if (this.destroyed || this.peer !== peer) return;
       logger.info('PEER_CLIENT', 'Client PeerJS signaling open', {
         assignedId,
-        destroyed: this.destroyed,
       });
       updateDiagnosticContext({ peerId: assignedId });
-      if (this.destroyed) return;
-      this.connectToHost();
+      this.connectToHost(peer);
     });
 
     peer.on('error', (err) => {
+      if (this.destroyed || this.peer !== peer || !this.callbacks) return;
       logger.error('PEER_CLIENT', 'Client PeerJS error event', {
         type: err.type,
         message: err.message,
         roomCode: this.roomCode,
         retryCount: this.retryCount,
-        destroyed: this.destroyed,
         error: err,
       });
-      if (this.destroyed || !this.callbacks) return;
       if (err.type === 'peer-unavailable') {
+        this.clearConnectTimeout();
         this.callbacks.onError('room_not_found');
         this.callbacks.onStateChange('error');
         return;
@@ -431,34 +523,43 @@ export class PeerClientTransport implements ClientTransport {
     });
 
     peer.on('disconnected', () => {
+      if (this.destroyed || this.peer !== peer) return;
       logger.warn('PEER_CLIENT', 'Client PeerJS signaling disconnected', {
-        destroyed: this.destroyed,
         connOpen: this.conn?.open ?? false,
       });
-      if (this.destroyed) return;
-      this.scheduleReconnect('peer_disconnected');
+      // Only reconnect if the DataConnection itself isn't already open
+      if (!this.conn?.open) {
+        this.scheduleReconnect('peer_disconnected');
+      }
     });
 
     peer.on('close', () => {
+      if (this.peer !== peer) return;
       logger.warn('PEER_CLIENT', 'Client PeerJS peer closed', { destroyed: this.destroyed });
     });
   }
 
-  private connectToHost(): void {
-    if (!this.peer || this.destroyed || !this.callbacks) return;
+  private connectToHost(peer: Peer): void {
+    if (this.peer !== peer || this.destroyed || !this.callbacks) return;
     const hostPeerId = roomCodeToPeerId(this.roomCode);
     logger.info('PEER_CLIENT', 'Calling peer.connect() to host', {
       hostPeerId,
-      localPeerId: this.peer.id,
+      localPeerId: peer.id,
       reliable: true,
     });
-    const conn = this.peer.connect(hostPeerId, { reliable: true });
+    const conn = peer.connect(hostPeerId, { reliable: true });
     this.conn = conn;
-    attachRtcDiagnostics('PEER_CLIENT', `client->${this.roomCode}`, conn);
+    attachRtcDiagnostics('PEER_CLIENT', `client->${this.roomCode}`, conn, () => {
+      if (!this.destroyed && this.conn === conn && !conn.open) {
+        this.hooks.onIceBlocked?.('zero_local_ice_candidates');
+      }
+    });
 
     const connectStartedAt = Date.now();
-    const timeout = setTimeout(() => {
-      if (!conn.open && !this.destroyed) {
+    this.clearConnectTimeout();
+    this.connectTimeout = setTimeout(() => {
+      this.connectTimeout = null;
+      if (this.conn === conn && !conn.open && !this.destroyed) {
         logger.error('PEER_CLIENT', 'Connection to host TIMED OUT after 9000ms before conn.open', {
           elapsedMs: Date.now() - connectStartedAt,
           hostPeerId,
@@ -471,19 +572,19 @@ export class PeerClientTransport implements ClientTransport {
     }, 9000);
 
     conn.on('open', () => {
-      clearTimeout(timeout);
+      if (this.destroyed || this.conn !== conn || !this.callbacks) return;
+      this.clearConnectTimeout();
       logger.info('PEER_CLIENT', 'Client DataConnection OPEN to host!', {
         elapsedMs: Date.now() - connectStartedAt,
         snapshot: getConnSnapshot(conn),
       });
-      if (this.destroyed || !this.callbacks) return;
       this.retryCount = 0;
       this.callbacks.onStateChange('connected');
       this.startHeartbeat();
     });
 
     conn.on('data', (raw) => {
-      if (this.destroyed || !this.callbacks) return;
+      if (this.destroyed || this.conn !== conn || !this.callbacks) return;
       if (raw && typeof raw === 'object' && 'type' in raw) {
         const msg = raw as HostToClientMessage;
         if (msg.type === 'PONG') {
@@ -497,13 +598,13 @@ export class PeerClientTransport implements ClientTransport {
       } else {
         logger.warn('PEER_CLIENT', 'Received unrecognized payload from host', {
           payloadType: typeof raw,
-          raw,
         });
       }
     });
 
     conn.on('close', () => {
-      clearTimeout(timeout);
+      if (this.conn !== conn) return;
+      this.clearConnectTimeout();
       this.stopHeartbeat();
       logger.warn('PEER_CLIENT', 'Client DataConnection closed', getConnSnapshot(conn));
       if (!this.destroyed) {
@@ -512,7 +613,8 @@ export class PeerClientTransport implements ClientTransport {
     });
 
     conn.on('error', (err) => {
-      clearTimeout(timeout);
+      if (this.conn !== conn) return;
+      this.clearConnectTimeout();
       this.stopHeartbeat();
       logger.error('PEER_CLIENT', 'Client DataConnection error', {
         error: err,
@@ -606,27 +708,10 @@ export class PeerClientTransport implements ClientTransport {
       retryCount: this.retryCount,
     });
     this.destroyed = true;
-    this.stopHeartbeat();
     if (this.reconnectTimer) {
       clearTimeout(this.reconnectTimer);
       this.reconnectTimer = null;
     }
-    if (this.conn) {
-      try {
-        this.conn.close();
-      } catch {
-        // ignore
-      }
-      this.conn = null;
-    }
-    if (this.peer) {
-      try {
-        this.peer.destroy();
-      } catch {
-        // ignore
-      }
-      this.peer = null;
-    }
-    updateDiagnosticContext({ peerId: null });
+    this.disposeCurrentPeer();
   }
 }

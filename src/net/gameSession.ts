@@ -42,8 +42,8 @@ import type {
   VoyageMode,
   WinningFaction,
 } from '../engine/types';
+import { HybridClientTransport, HybridHostTransport } from './hybridTransport';
 import { LocalClientTransport, LocalHostTransport } from './localTransport';
-import { PeerClientTransport, PeerHostTransport } from './peerTransport';
 import {
   generatePlayerId,
   generateRoomCode,
@@ -364,7 +364,7 @@ export function useGameSession(): GameSession {
       });
 
       const transport: HostTransport =
-        transportMode === 'local' ? new LocalHostTransport() : new PeerHostTransport();
+        transportMode === 'local' ? new LocalHostTransport() : new HybridHostTransport();
       hostTransportRef.current = transport;
 
       transport.start(initialState.roomCode, {
@@ -536,7 +536,7 @@ export function useGameSession(): GameSession {
       });
 
       const transport: ClientTransport =
-        transportMode === 'local' ? new LocalClientTransport() : new PeerClientTransport();
+        transportMode === 'local' ? new LocalClientTransport() : new HybridClientTransport();
       clientTransportRef.current = transport;
 
       transport.connect(cleanCode, {
