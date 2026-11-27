@@ -55,8 +55,9 @@ export const GameOverOverlay: React.FC<GameOverOverlayProps> = ({
         </div>
         <h2
           style={{
-            fontFamily: 'var(--font-pirate)',
-            fontSize: '2rem',
+            fontFamily: 'var(--font-display)',
+            fontSize: '1.65rem',
+            fontWeight: 800,
             color: 'var(--crimson-banner)',
             margin: '0 0 0.35rem',
           }}

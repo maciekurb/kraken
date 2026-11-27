@@ -60,26 +60,26 @@ select {
   background: linear-gradient(180deg, var(--wood-mid) 0%, var(--wood-dark) 100%);
   color: var(--parchment-card);
   border-bottom: 3px solid var(--brass-dark);
-  padding: calc(0.55rem + env(safe-area-inset-top)) 0.85rem 0.55rem;
+  padding: calc(0.5rem + env(safe-area-inset-top)) 0.65rem 0.5rem;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.5rem;
+  gap: 0.35rem;
   box-shadow: 0 3px 12px rgba(0, 0, 0, 0.35);
 }
 
 .top-bar-brand {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.4rem;
   min-width: 0;
 }
 
 .top-bar-title {
   font-family: var(--font-display);
   font-weight: 800;
-  font-size: 0.98rem;
-  letter-spacing: 0.04em;
+  font-size: 0.85rem;
+  letter-spacing: 0.02em;
   color: var(--brass-light);
   white-space: nowrap;
   overflow: hidden;
@@ -643,29 +643,38 @@ select {
 }
 
 /* Tables (Player Aid) */
+.table-scroll {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
 .aid-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.86rem;
+  font-size: 0.82rem;
   margin: 0.5rem 0;
   background: #fffdf7;
   border-radius: var(--radius-sm);
   overflow: hidden;
   border: 1px solid var(--parchment-border);
+  table-layout: fixed;
 }
 
 .aid-table th,
 .aid-table td {
-  padding: 0.42rem 0.32rem;
+  padding: 0.38rem 0.14rem;
   text-align: center;
   border-bottom: 1px solid var(--parchment-deep);
+  word-break: break-word;
 }
 
 .aid-table th {
   background: var(--wood-mid);
   color: var(--brass-light);
   font-family: var(--font-display);
-  font-size: 0.72rem;
+  font-size: 0.6rem;
+  line-height: 1.2;
 }
 
 .aid-table tr.highlight-row {

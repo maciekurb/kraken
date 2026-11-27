@@ -110,8 +110,9 @@ export const PlayerAid: React.FC<PlayerAidProps> = ({
             </div>
           </div>
 
-          <div className="parchment-card">
-            <table className="aid-table">
+          <div className="parchment-card" style={{ padding: '0.75rem 0.55rem' }}>
+            <div className="table-scroll">
+              <table className="aid-table">
               <thead>
                 <tr>
                   <th>{t('aidTablePlayers')}</th>
@@ -141,7 +142,8 @@ export const PlayerAid: React.FC<PlayerAidProps> = ({
                   </tr>
                 ))}
               </tbody>
-            </table>
+              </table>
+            </div>
 
             <div className="notice-box gold small-text">{t('aidRule5p')}</div>
             <div className="notice-box cult small-text">{t('aidRule11p')}</div>

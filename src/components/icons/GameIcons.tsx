@@ -169,11 +169,23 @@ export const RitualIcon: React.FC<{ ritual: RitualType; size?: number }> = ({
   if (ritual === 'conversion') {
     return (
       <svg width={size} height={size} viewBox="0 0 64 64" aria-hidden="true">
-        <rect x="6" y="6" width="52" height="52" rx="10" fill="#2A4A36" stroke="#C99B3B" strokeWidth="3" />
-        <CultistIcon size={44} />
-        <g transform="translate(10,10) scale(0.7)">
-          <circle cx="32" cy="32" r="24" fill="none" />
-        </g>
+        <rect x="6" y="6" width="52" height="52" rx="10" fill="#1D6447" stroke="#C99B3B" strokeWidth="3" />
+        <path
+          d="M32 14c-8 0-12.5 7-12.5 17 0 6.2 1.8 10.8 3.6 13.5h17.8c1.8-2.7 3.6-7.3 3.6-13.5 0-10-4.5-17-12.5-17z"
+          fill="#103928"
+          stroke="#DDF5EA"
+          strokeWidth="2.2"
+        />
+        <ellipse cx="32" cy="29.5" rx="6.8" ry="8" fill="#0B2219" />
+        <circle cx="29.3" cy="28.8" r="1.7" fill="#E8C76A" />
+        <circle cx="34.7" cy="28.8" r="1.7" fill="#E8C76A" />
+        <path
+          d="M25.5 42c2.2-2.2 4.4-3 6.5-3s4.3.8 6.5 3"
+          fill="none"
+          stroke="#8BD6B4"
+          strokeWidth="2"
+          strokeLinecap="round"
+        />
       </svg>
     );
   }
