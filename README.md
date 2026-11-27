@@ -31,6 +31,8 @@ npm run test:e2e     # Run 6-player multi-tab Playwright E2E suite
 
 ## Deploying to GitHub Pages
 
-1. Push this repository to GitHub (branch `main`).
-2. In your repository settings, go to **Settings → Pages → Source** and select **GitHub Actions**.
-3. The included workflow [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) automatically tests, builds, and publishes `dist/` on every push to `main`.
+Live app: **https://maciekurb.github.io/kraken/**
+
+1. Push to branch `master` (or `main`).
+2. In your repository settings, go to **Settings → Pages → Source** and select **GitHub Actions** (auto-enabled on public repos by the workflow).
+3. The included workflow [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) automatically tests, builds, and publishes `dist/` on every push.
