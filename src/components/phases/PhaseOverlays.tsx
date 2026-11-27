@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import type { PlayerView, PublicFactionGroup, RitualType } from '../../engine/types';
 import { useI18n } from '../../i18n/I18nContext';
 import type { HostActions, PlayerActions } from '../../net/gameSession';
+import { OverlayPortal } from '../OverlayPortal';
 import {
   CabinSearchHexIcon,
   CutTongueHexIcon,
@@ -81,12 +82,17 @@ export const PhaseOverlays: React.FC<PhaseOverlaysProps> = ({
   if (phase.type === 'cabin_search') {
     const aliveTargets = view.players.filter((p) => p.alive && p.id !== phase.captainId);
     return (
-      <div className="phase-overlay-backdrop" data-testid="phase-overlay-cabin-search">
-        <div className="phase-overlay-modal">
-          <div className="crimson-ribbon">
-            <h3>{t('phaseCabinSearchTitle')}</h3>
-            <CabinSearchHexIcon size={32} />
-          </div>
+      <OverlayPortal
+        open
+        variant="modal"
+        zIndex={70}
+        ariaLabel={t('phaseCabinSearchTitle')}
+        testId="phase-overlay-cabin-search"
+      >
+        <div className="crimson-ribbon" style={{ marginTop: 0 }}>
+          <h3>{t('phaseCabinSearchTitle')}</h3>
+          <CabinSearchHexIcon size={32} />
+        </div>
 
           {phase.step === 'select_target' && (
             <>
@@ -180,8 +186,7 @@ export const PhaseOverlays: React.FC<PhaseOverlaysProps> = ({
               {t('cancelAction')}
             </button>
           )}
-        </div>
-      </div>
+      </OverlayPortal>
     );
   }
 
@@ -191,12 +196,17 @@ export const PhaseOverlays: React.FC<PhaseOverlaysProps> = ({
   if (phase.type === 'flogging') {
     const aliveTargets = view.players.filter((p) => p.alive && p.id !== phase.captainId);
     return (
-      <div className="phase-overlay-backdrop" data-testid="phase-overlay-flogging">
-        <div className="phase-overlay-modal">
-          <div className="crimson-ribbon">
-            <h3>{t('phaseFloggingTitle')}</h3>
-            <FloggingHexIcon size={32} />
-          </div>
+      <OverlayPortal
+        open
+        variant="modal"
+        zIndex={70}
+        ariaLabel={t('phaseFloggingTitle')}
+        testId="phase-overlay-flogging"
+      >
+        <div className="crimson-ribbon" style={{ marginTop: 0 }}>
+          <h3>{t('phaseFloggingTitle')}</h3>
+          <FloggingHexIcon size={32} />
+        </div>
 
           {phase.step === 'select_target' && (
             <>
@@ -271,7 +281,7 @@ export const PhaseOverlays: React.FC<PhaseOverlaysProps> = ({
                   fontFamily: 'var(--font-display)',
                   fontSize: '1.1rem',
                   fontWeight: 800,
-                  color: 'var(--crimson-banner)',
+                  color: 'var(--pirate-red)',
                   marginBottom: '0.45rem',
                 }}
               >
@@ -312,8 +322,7 @@ export const PhaseOverlays: React.FC<PhaseOverlaysProps> = ({
               {t('cancelAction')}
             </button>
           )}
-        </div>
-      </div>
+      </OverlayPortal>
     );
   }
 
@@ -325,12 +334,17 @@ export const PhaseOverlays: React.FC<PhaseOverlaysProps> = ({
       (p) => p.alive && p.id !== phase.captainId && !p.tongueCut
     );
     return (
-      <div className="phase-overlay-backdrop" data-testid="phase-overlay-cut-tongue">
-        <div className="phase-overlay-modal">
-          <div className="crimson-ribbon">
-            <h3>{t('phaseCutTongueTitle')}</h3>
-            <CutTongueHexIcon size={32} />
-          </div>
+      <OverlayPortal
+        open
+        variant="modal"
+        zIndex={70}
+        ariaLabel={t('phaseCutTongueTitle')}
+        testId="phase-overlay-cut-tongue"
+      >
+        <div className="crimson-ribbon" style={{ marginTop: 0 }}>
+          <h3>{t('phaseCutTongueTitle')}</h3>
+          <CutTongueHexIcon size={32} />
+        </div>
           <p className="small-text muted" style={{ marginTop: 0 }}>
             {t('cutTongueHint')}
           </p>
@@ -363,8 +377,7 @@ export const PhaseOverlays: React.FC<PhaseOverlaysProps> = ({
               {t('cancelAction')}
             </button>
           )}
-        </div>
-      </div>
+      </OverlayPortal>
     );
   }
 
@@ -374,12 +387,17 @@ export const PhaseOverlays: React.FC<PhaseOverlaysProps> = ({
   if (phase.type === 'feed_kraken') {
     const aliveTargets = view.players.filter((p) => p.alive && p.id !== phase.captainId);
     return (
-      <div className="phase-overlay-backdrop" data-testid="phase-overlay-feed-kraken">
-        <div className="phase-overlay-modal">
-          <div className="crimson-ribbon">
-            <h3>{t('phaseFeedKrakenTitle')}</h3>
-            <FeedKrakenHexIcon size={32} />
-          </div>
+      <OverlayPortal
+        open
+        variant="modal"
+        zIndex={70}
+        ariaLabel={t('phaseFeedKrakenTitle')}
+        testId="phase-overlay-feed-kraken"
+      >
+        <div className="crimson-ribbon" style={{ marginTop: 0 }}>
+          <h3>{t('phaseFeedKrakenTitle')}</h3>
+          <FeedKrakenHexIcon size={32} />
+        </div>
 
           {phase.step === 'select_target' && (
             <>
@@ -435,8 +453,7 @@ export const PhaseOverlays: React.FC<PhaseOverlaysProps> = ({
               )}
             </div>
           )}
-        </div>
-      </div>
+      </OverlayPortal>
     );
   }
 
@@ -462,12 +479,17 @@ export const PhaseOverlays: React.FC<PhaseOverlaysProps> = ({
   };
 
   return (
-    <div className="phase-overlay-backdrop" data-testid={`phase-overlay-ritual-${phase.ritualType}`}>
-      <div className="phase-overlay-modal">
-        <div className="crimson-ribbon">
-          <h3>{ritualTitle}</h3>
-          <RitualIcon ritual={phase.ritualType} size={34} />
-        </div>
+    <OverlayPortal
+      open
+      variant="modal"
+      zIndex={70}
+      ariaLabel={ritualTitle}
+      testId={`phase-overlay-ritual-${phase.ritualType}`}
+    >
+      <div className="crimson-ribbon" style={{ marginTop: 0 }}>
+        <h3>{ritualTitle}</h3>
+        <RitualIcon ritual={phase.ritualType} size={34} />
+      </div>
 
         {/* STEP A: Enlightenment Command Team Selection (Host) */}
         {phase.step === 'select_command' && (
@@ -654,7 +676,7 @@ export const PhaseOverlays: React.FC<PhaseOverlaysProps> = ({
                       style={{
                         fontFamily: 'var(--font-display)',
                         fontWeight: 700,
-                        color: gunsLeft === 0 ? 'var(--cultist-green)' : 'var(--crimson-banner)',
+                        color: gunsLeft === 0 ? 'var(--cultist-green)' : 'var(--pirate-red)',
                         marginBottom: '0.55rem',
                       }}
                     >
@@ -920,7 +942,6 @@ export const PhaseOverlays: React.FC<PhaseOverlaysProps> = ({
             )}
           </div>
         )}
-      </div>
-    </div>
+    </OverlayPortal>
   );
 };

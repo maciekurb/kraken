@@ -4,6 +4,7 @@ import type { VoyageMode } from '../engine/types';
 import { useI18n } from '../i18n/I18nContext';
 import {
   CabinSearchHexIcon,
+  CompassIcon,
   CultistIcon,
   CultLeaderIcon,
   CutTongueHexIcon,
@@ -38,46 +39,62 @@ export const PlayerAid: React.FC<PlayerAidProps> = ({
   const deck = getNavigationDeckInfo(deckMode);
 
   return (
-    <div>
+    <div className="screen-enter">
       <div className="crimson-ribbon">
         <h2>{t('aidTitle')}</h2>
       </div>
 
-      <div className="pill-tabs" role="tablist">
+      {/* Horizontal snap-scrolling tabs with compact icons */}
+      <div className="aid-tabs-scroll" role="tablist" aria-label={t('aidTitle')}>
         <button
           type="button"
-          className={section === 'victory' ? 'active' : ''}
+          role="tab"
+          aria-selected={section === 'victory'}
+          className={`aid-tab-btn ${section === 'victory' ? 'active' : ''}`}
           onClick={() => setSection('victory')}
         >
-          {t('aidSecVictory')}
+          <CompassIcon size={18} />
+          <span>{t('aidSecVictory')}</span>
         </button>
         <button
           type="button"
-          className={section === 'round' ? 'active' : ''}
+          role="tab"
+          aria-selected={section === 'round'}
+          className={`aid-tab-btn ${section === 'round' ? 'active' : ''}`}
           onClick={() => setSection('round')}
         >
-          {t('aidSecRound')}
+          <NavArmingIcon size={18} />
+          <span>{t('aidSecRound')}</span>
         </button>
         <button
           type="button"
-          className={section === 'nav' ? 'active' : ''}
+          role="tab"
+          aria-selected={section === 'nav'}
+          className={`aid-tab-btn ${section === 'nav' ? 'active' : ''}`}
           onClick={() => setSection('nav')}
         >
-          {t('aidSecNavCards')}
+          <NavTelescopeIcon size={18} />
+          <span>{t('aidSecNavCards')}</span>
         </button>
         <button
           type="button"
-          className={section === 'rituals' ? 'active' : ''}
+          role="tab"
+          aria-selected={section === 'rituals'}
+          className={`aid-tab-btn ${section === 'rituals' ? 'active' : ''}`}
           onClick={() => setSection('rituals')}
         >
-          {t('aidSecRituals')}
+          <RitualIcon ritual="conversion" size={18} />
+          <span>{t('aidSecRituals')}</span>
         </button>
         <button
           type="button"
-          className={section === 'map' ? 'active' : ''}
+          role="tab"
+          aria-selected={section === 'map'}
+          className={`aid-tab-btn ${section === 'map' ? 'active' : ''}`}
           onClick={() => setSection('map')}
         >
-          {t('aidSecMapActions')}
+          <CabinSearchHexIcon size={18} />
+          <span>{t('aidSecMapActions')}</span>
         </button>
       </div>
 
@@ -110,43 +127,59 @@ export const PlayerAid: React.FC<PlayerAidProps> = ({
             </div>
           </div>
 
-          <div className="parchment-card" style={{ padding: '0.75rem 0.55rem' }}>
+          <div className="parchment-card" style={{ padding: '0.8rem 0.65rem' }}>
             <div className="table-scroll">
               <table className="aid-table">
-              <thead>
-                <tr>
-                  <th>{t('aidTablePlayers')}</th>
-                  <th>{t('aidTableSailors')}</th>
-                  <th>{t('aidTablePirates')}</th>
-                  <th>{t('aidTableLeader')}</th>
-                  <th>{t('aidTableCultist')}</th>
-                  <th>{t('aidTableOffDuty')}</th>
-                  <th>{t('aidTableMutiny')}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {CREW_COMPOSITION_TABLE.map((row) => (
-                  <tr
-                    key={row.players}
-                    className={activePlayerCount === row.players ? 'highlight-row' : ''}
-                  >
-                    <td>
-                      <strong>{row.players}</strong>
-                    </td>
-                    <td>{row.sailors}</td>
-                    <td>{row.pirates}</td>
-                    <td>{row.cultLeader}</td>
-                    <td>{row.cultist || '—'}</td>
-                    <td>{row.offDuty}</td>
-                    <td>{row.mutinyGuns}+</td>
+                <thead>
+                  <tr>
+                    <th scope="col" title={t('aidTablePlayers')}>
+                      {t('aidTablePlayersShort')}
+                    </th>
+                    <th scope="col" title={t('aidTableSailors')}>
+                      {t('aidTableSailorsShort')}
+                    </th>
+                    <th scope="col" title={t('aidTablePirates')}>
+                      {t('aidTablePiratesShort')}
+                    </th>
+                    <th scope="col" title={t('aidTableLeader')}>
+                      {t('aidTableLeaderShort')}
+                    </th>
+                    <th scope="col" title={t('aidTableCultist')}>
+                      {t('aidTableCultistShort')}
+                    </th>
+                    <th scope="col" title={t('aidTableOffDuty')}>
+                      {t('aidTableOffDutyShort')}
+                    </th>
+                    <th scope="col" title={t('aidTableMutiny')}>
+                      {t('aidTableMutinyShort')}
+                    </th>
                   </tr>
-                ))}
-              </tbody>
+                </thead>
+                <tbody>
+                  {CREW_COMPOSITION_TABLE.map((row) => (
+                    <tr
+                      key={row.players}
+                      className={activePlayerCount === row.players ? 'highlight-row' : ''}
+                    >
+                      <td>
+                        <strong>{row.players}</strong>
+                      </td>
+                      <td>{row.sailors}</td>
+                      <td>{row.pirates}</td>
+                      <td>{row.cultLeader}</td>
+                      <td>{row.cultist || '—'}</td>
+                      <td>{row.offDuty}</td>
+                      <td>{row.mutinyGuns}+</td>
+                    </tr>
+                  ))}
+                </tbody>
               </table>
             </div>
 
             <div className="notice-box gold small-text">{t('aidRule5p')}</div>
-            <div className="notice-box cult small-text">{t('aidRule11p')}</div>
+            <div className="notice-box cult small-text" style={{ marginBottom: 0 }}>
+              {t('aidRule11p')}
+            </div>
           </div>
         </>
       )}
@@ -166,7 +199,7 @@ export const PlayerAid: React.FC<PlayerAidProps> = ({
             <h3 style={{ margin: '0 0 0.4rem', fontFamily: 'var(--font-display)' }}>
               {t('aidMutinyTitle')}
             </h3>
-            <p className="small-text" style={{ margin: 0, lineHeight: 1.45 }}>
+            <p className="small-text" style={{ margin: 0, lineHeight: 1.48 }}>
               {t('aidMutinyDesc')}
             </p>
           </div>
@@ -175,7 +208,7 @@ export const PlayerAid: React.FC<PlayerAidProps> = ({
             <h3 style={{ margin: '0 0 0.4rem', fontFamily: 'var(--font-display)' }}>
               {t('aidOverboardTitle')}
             </h3>
-            <p className="small-text" style={{ margin: 0, lineHeight: 1.45 }}>
+            <p className="small-text" style={{ margin: 0, lineHeight: 1.48 }}>
               {t('aidOverboardDesc')}
             </p>
           </div>
@@ -184,9 +217,11 @@ export const PlayerAid: React.FC<PlayerAidProps> = ({
 
       {section === 'nav' && (
         <div className="parchment-card">
-          <div className="pill-tabs">
+          <div className="pill-tabs" role="radiogroup" aria-label={t('voyageModeTitle')}>
             <button
               type="button"
+              role="radio"
+              aria-checked={deckMode === 'short'}
               className={deckMode === 'short' ? 'active' : ''}
               onClick={() => setDeckMode('short')}
             >
@@ -194,6 +229,8 @@ export const PlayerAid: React.FC<PlayerAidProps> = ({
             </button>
             <button
               type="button"
+              role="radio"
+              aria-checked={deckMode === 'long'}
               className={deckMode === 'long' ? 'active' : ''}
               onClick={() => setDeckMode('long')}
             >

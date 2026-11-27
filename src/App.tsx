@@ -2,7 +2,9 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { DebugLogPanel, useLogEntries } from './components/DebugLogPanel';
 import { CompassIcon } from './components/icons/GameIcons';
 import { PlayerAid } from './components/PlayerAid';
+import { SettingsSheet } from './components/SettingsSheet';
 import { logger } from './debug/logger';
+import { useTheme } from './hooks/useTheme';
 import { useWakeLock } from './hooks/useWakeLock';
 import { useI18n } from './i18n/I18nContext';
 import { useGameSession } from './net/gameSession';
@@ -10,11 +12,20 @@ import { GameScreen } from './screens/GameScreen';
 import { HomeScreen } from './screens/HomeScreen';
 import { LobbyScreen } from './screens/LobbyScreen';
 
+const GearIcon: React.FC = () => (
+  <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <circle cx="12" cy="12" r="3.2" />
+    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9c.26.6.85 1 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+  </svg>
+);
+
 export const App: React.FC = () => {
   const { lang, setLang, t } = useI18n();
+  const { theme, setTheme } = useTheme();
   const session = useGameSession();
   const wakeLock = useWakeLock();
   const [standaloneAid, setStandaloneAid] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [logsOpen, setLogsOpen] = useState(false);
   const logEntries = useLogEntries();
 
@@ -65,51 +76,31 @@ export const App: React.FC = () => {
 
   return (
     <div className="app-shell">
-      {/* Top Wood-Plank Bar */}
+      {/* Slim Maritime Wood Top Bar */}
       <header className="top-bar">
         <div className="top-bar-brand">
-          <CompassIcon size={26} />
-          <span className="top-bar-title">{t('appTitle')}</span>
-        </div>
-
-        <div className="top-bar-controls">
-          {session.view && (
-            <span className="conn-pill" title={connLabel} data-testid="connection-pill">
+          <CompassIcon size={28} />
+          {session.view ? (
+            <span
+              className="conn-pill"
+              title={connLabel}
+              aria-label={`${session.view.roomCode} — ${connLabel}`}
+              data-testid="connection-pill"
+            >
               <span className={`conn-dot ${session.connectionState}`} />
               <span>{session.view.roomCode}</span>
             </span>
+          ) : (
+            <span className="top-bar-title">{t('appTitle')}</span>
           )}
+        </div>
 
-          {wakeLock.supported && session.view && (
-            <button
-              type="button"
-              className="conn-pill"
-              style={{ cursor: 'pointer' }}
-              onClick={wakeLock.toggle}
-              title={wakeLock.active ? t('wakeLockOn') : t('wakeLockOff')}
-            >
-              {wakeLock.active ? '☀' : '☾'}
-            </button>
-          )}
-
-          <button
-            type="button"
-            className={`conn-pill log-pill-btn ${errorCount > 0 ? 'has-error' : ''}`}
-            onClick={() => {
-              logger.debug('UI', 'Opened diagnostic log panel');
-              setLogsOpen(true);
-            }}
-            title={t('debugLogsTitle')}
-            data-testid="open-logs-btn"
-          >
-            <span>{t('debugLogsBtn')}</span>
-            {errorCount > 0 && <span className="log-error-badge">{errorCount}</span>}
-          </button>
-
+        <div className="top-bar-controls">
           <div className="lang-toggle" role="group" aria-label={t('langLabel')}>
             <button
               type="button"
               className={lang === 'pl' ? 'active' : ''}
+              aria-pressed={lang === 'pl'}
               onClick={() => setLang('pl')}
               data-testid="lang-pl-btn"
             >
@@ -118,12 +109,32 @@ export const App: React.FC = () => {
             <button
               type="button"
               className={lang === 'en' ? 'active' : ''}
+              aria-pressed={lang === 'en'}
               onClick={() => setLang('en')}
               data-testid="lang-en-btn"
             >
               EN
             </button>
           </div>
+
+          <button
+            type="button"
+            className={`icon-pill-btn ${errorCount > 0 ? 'has-error' : ''}`}
+            onClick={() => {
+              logger.debug('UI', 'Opened settings sheet');
+              setSettingsOpen(true);
+            }}
+            aria-label={t('settingsBtnLabel')}
+            title={t('settingsTitle')}
+            data-testid="open-settings-btn"
+          >
+            <GearIcon />
+            {errorCount > 0 && (
+              <span className="settings-error-dot" aria-hidden="true">
+                {errorCount > 9 ? '9+' : errorCount}
+              </span>
+            )}
+          </button>
         </div>
       </header>
 
@@ -131,11 +142,11 @@ export const App: React.FC = () => {
       {!session.view ? (
         <main className="main-content no-nav">
           {standaloneAid ? (
-            <div>
+            <div className="screen-enter">
               <button
                 type="button"
                 className="btn btn-outline btn-sm"
-                style={{ marginBottom: '0.6rem' }}
+                style={{ marginBottom: '0.65rem' }}
                 onClick={() => setStandaloneAid(false)}
                 data-testid="aid-back-home-btn"
               >
@@ -180,6 +191,21 @@ export const App: React.FC = () => {
           onLeave={session.leaveRoom}
         />
       )}
+
+      <SettingsSheet
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        theme={theme}
+        onSetTheme={setTheme}
+        wakeLockSupported={wakeLock.supported}
+        wakeLockActive={wakeLock.active}
+        onToggleWakeLock={() => void wakeLock.toggle()}
+        errorCount={errorCount}
+        onOpenLogs={() => {
+          logger.debug('UI', 'Opened diagnostic log panel from settings');
+          setLogsOpen(true);
+        }}
+      />
 
       <DebugLogPanel open={logsOpen} onClose={() => setLogsOpen(false)} />
     </div>

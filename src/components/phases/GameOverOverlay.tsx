@@ -37,35 +37,42 @@ export const GameOverOverlay: React.FC<GameOverOverlayProps> = ({
           ? t('winReasonPortSailors')
           : t('winReasonPortPirates');
 
+  const bannerVariant =
+    faction === 'sailor'
+      ? 'victory-banner-sailor'
+      : faction === 'pirate'
+        ? 'victory-banner-pirate'
+        : 'victory-banner-cult';
+
   return (
-    <div data-testid="game-over-screen">
+    <div className="screen-enter" data-testid="game-over-screen">
       <div className="crimson-ribbon">
         <h2>{t('gameOverTitle')}</h2>
       </div>
 
-      <div className="parchment-card brass center">
-        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '0.5rem' }}>
+      <div className={`parchment-card brass center ${bannerVariant}`}>
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '0.55rem' }}>
           {faction === 'sailor' ? (
-            <SailorIcon size={82} />
+            <SailorIcon size={86} />
           ) : faction === 'pirate' ? (
-            <PirateIcon size={82} />
+            <PirateIcon size={86} />
           ) : (
-            <CultLeaderIcon size={82} />
+            <CultLeaderIcon size={86} />
           )}
         </div>
         <h2
           style={{
             fontFamily: 'var(--font-display)',
-            fontSize: '1.65rem',
+            fontSize: '1.7rem',
             fontWeight: 800,
-            color: 'var(--crimson-banner)',
+            color: 'var(--ink-primary)',
             margin: '0 0 0.35rem',
           }}
           data-testid="winner-headline"
         >
           {title}
         </h2>
-        <p style={{ margin: 0 }}>{subtitle}</p>
+        <p style={{ margin: 0, color: 'var(--ink-secondary)' }}>{subtitle}</p>
       </div>
 
       <div className="parchment-card">
@@ -95,7 +102,7 @@ export const GameOverOverlay: React.FC<GameOverOverlayProps> = ({
         ))}
 
         {view.fivePlayerRemovedFaction && (
-          <div className="notice-box gold small-text" style={{ marginTop: '0.65rem' }}>
+          <div className="notice-box gold small-text" style={{ marginTop: '0.65rem', marginBottom: 0 }}>
             {t('fivePlayerUnusedCard', {
               faction: getFactionLabel(view.fivePlayerRemovedFaction, t),
             })}

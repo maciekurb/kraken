@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta name="theme-color" content="#5C1E23" />
+    <meta name="theme-color" content="#24160e" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="description" content="Feed the Kraken P2P tabletop companion PWA (PL/EN) — secret roles, cult rituals, and player aid without closing your eyes." />
@@ -16,6 +16,18 @@
       rel="stylesheet"
     />
     <title>Feed the Kraken — Companion</title>
+    <script>
+      (function () {
+        try {
+          var saved = localStorage.getItem('ftk_theme_v1');
+          var theme = saved === 'dark' ? 'dark' : 'light';
+          document.documentElement.dataset.theme = theme;
+          document.documentElement.style.colorScheme = theme;
+          var meta = document.querySelector('meta[name="theme-color"]');
+          if (meta) meta.setAttribute('content', theme === 'dark' ? '#120b07' : '#24160e');
+        } catch (e) {}
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import React, { useEffect, useId, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import {
   clearLogs,
   copyLogsToClipboard,
@@ -11,6 +11,7 @@ import {
   type LogLevel,
 } from '../debug/logger';
 import { useI18n } from '../i18n/I18nContext';
+import { OverlayPortal } from './OverlayPortal';
 
 interface DebugLogPanelProps {
   open: boolean;
@@ -34,6 +35,7 @@ export function useDiagnosticContext() {
 
 export const DebugLogPanel: React.FC<DebugLogPanelProps> = ({ open, onClose }) => {
   const { t } = useI18n();
+  const titleId = useId();
   const entries = useLogEntries();
   const ctx = useDiagnosticContext();
   const [minLevel, setMinLevel] = useState<LogLevel>('DEBUG');
@@ -93,27 +95,28 @@ export const DebugLogPanel: React.FC<DebugLogPanelProps> = ({ open, onClose }) =
   };
 
   return (
-    <div
-      className="phase-overlay-backdrop"
-      style={{ zIndex: 90 }}
-      data-testid="debug-log-modal"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
+    <OverlayPortal
+      open={open}
+      onClose={onClose}
+      variant="modal"
+      zIndex={95}
+      panelClassName="debug-log-modal"
+      ariaLabelledBy={titleId}
+      testId="debug-log-modal"
     >
-      <div className="phase-overlay-modal debug-log-modal">
-        <div className="crimson-ribbon" style={{ marginTop: 0 }}>
-          <h3>{t('debugLogsTitle')}</h3>
-          <button
-            type="button"
-            className="btn btn-outline btn-sm"
-            style={{ padding: '0.2rem 0.55rem' }}
-            onClick={onClose}
-            data-testid="close-logs-btn"
-          >
-            ✕
-          </button>
-        </div>
+      <div className="crimson-ribbon" style={{ marginTop: 0 }}>
+        <h3 id={titleId}>{t('debugLogsTitle')}</h3>
+        <button
+          type="button"
+          className="btn btn-outline btn-sm"
+          style={{ minHeight: 34, padding: '0.2rem 0.6rem' }}
+          onClick={onClose}
+          aria-label={t('closeLabel')}
+          data-testid="close-logs-btn"
+        >
+          ✕
+        </button>
+      </div>
 
         {/* Live connection & environment strip */}
         <div className="debug-ctx-grid">
@@ -249,7 +252,6 @@ export const DebugLogPanel: React.FC<DebugLogPanelProps> = ({ open, onClose }) =
         <p className="small-text muted" style={{ margin: '0.45rem 0 0', fontSize: '0.75rem' }}>
           {t('debugLogsConsoleHint')}
         </p>
-      </div>
-    </div>
+    </OverlayPortal>
   );
 };

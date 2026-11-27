@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import type { Faction, PlayerView } from '../engine/types';
 import { useI18n } from '../i18n/I18nContext';
 import { FactionIcon, WaxSealIcon } from './icons/GameIcons';
@@ -6,6 +6,11 @@ import { FactionIcon, WaxSealIcon } from './icons/GameIcons';
 interface SecretRoleCardProps {
   view: PlayerView;
 }
+
+const TAP_REVEAL_MS = 15_000;
+const HOLD_THRESHOLD_MS = 240;
+
+type RevealMode = 'sealed' | 'hold' | 'tap';
 
 export function getFactionLabel(
   faction: Faction,
@@ -25,24 +30,101 @@ export function getFactionLabel(
 
 export const SecretRoleCard: React.FC<SecretRoleCardProps> = ({ view }) => {
   const { t } = useI18n();
-  const [revealed, setRevealed] = useState(false);
+  const [revealMode, setRevealMode] = useState<RevealMode>('sealed');
+  const [remainingMs, setRemainingMs] = useState<number>(TAP_REVEAL_MS);
+
+  const holdTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const didHoldRef = useRef(false);
+  const tapDeadlineRef = useRef<number>(0);
 
   const { me } = view;
   const faction = me.currentFaction;
+  const revealed = revealMode !== 'sealed';
 
-  // Auto-hide after 18 seconds so nobody accidentally leaves their role face-up on the table
-  useEffect(() => {
-    if (!revealed) return;
-    const timer = setTimeout(() => setRevealed(false), 18000);
-    return () => clearTimeout(timer);
-  }, [revealed]);
-
-  // Also hide immediately if tab loses focus / screen locks
-  useEffect(() => {
-    const onBlur = () => setRevealed(false);
-    window.addEventListener('blur', onBlur);
-    return () => window.removeEventListener('blur', onBlur);
+  const conceal = useCallback(() => {
+    if (holdTimerRef.current) {
+      clearTimeout(holdTimerRef.current);
+      holdTimerRef.current = null;
+    }
+    setRevealMode('sealed');
   }, []);
+
+  // Tap mode: 15s countdown timer with smooth progress bar
+  useEffect(() => {
+    if (revealMode !== 'tap') return;
+    tapDeadlineRef.current = Date.now() + TAP_REVEAL_MS;
+    setRemainingMs(TAP_REVEAL_MS);
+
+    const interval = setInterval(() => {
+      const left = Math.max(0, tapDeadlineRef.current - Date.now());
+      setRemainingMs(left);
+      if (left <= 0) {
+        setRevealMode('sealed');
+      }
+    }, 150);
+
+    return () => clearInterval(interval);
+  }, [revealMode]);
+
+  // Global release listener so press-and-hold always conceals cleanly on finger/mouse lift
+  useEffect(() => {
+    const onPointerEnd = () => {
+      if (holdTimerRef.current) {
+        clearTimeout(holdTimerRef.current);
+        holdTimerRef.current = null;
+      }
+      setRevealMode((prev) => (prev === 'hold' ? 'sealed' : prev));
+    };
+    window.addEventListener('pointerup', onPointerEnd);
+    window.addEventListener('pointercancel', onPointerEnd);
+    return () => {
+      window.removeEventListener('pointerup', onPointerEnd);
+      window.removeEventListener('pointercancel', onPointerEnd);
+    };
+  }, []);
+
+  // Hide immediately if tab loses focus, switches app, or screen locks
+  useEffect(() => {
+    const onVisibility = () => {
+      if (document.hidden) conceal();
+    };
+    window.addEventListener('blur', conceal);
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => {
+      window.removeEventListener('blur', conceal);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
+  }, [conceal]);
+
+  // Clean up timer on unmount
+  useEffect(() => {
+    return () => {
+      if (holdTimerRef.current) clearTimeout(holdTimerRef.current);
+    };
+  }, []);
+
+  const handleSealPointerDown = (e: React.PointerEvent<HTMLButtonElement>) => {
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    didHoldRef.current = false;
+    if (holdTimerRef.current) clearTimeout(holdTimerRef.current);
+    holdTimerRef.current = setTimeout(() => {
+      holdTimerRef.current = null;
+      didHoldRef.current = true;
+      setRevealMode('hold');
+    }, HOLD_THRESHOLD_MS);
+  };
+
+  const handleSealClick = () => {
+    if (didHoldRef.current) {
+      didHoldRef.current = false;
+      return;
+    }
+    if (holdTimerRef.current) {
+      clearTimeout(holdTimerRef.current);
+      holdTimerRef.current = null;
+    }
+    setRevealMode('tap');
+  };
 
   if (!faction) return null;
 
@@ -53,8 +135,11 @@ export const SecretRoleCard: React.FC<SecretRoleCardProps> = ({ view }) => {
         ? t('winPirate')
         : t('winCult');
 
+  const remainingSec = Math.max(1, Math.ceil(remainingMs / 1000));
+  const countdownPct = Math.max(0, Math.min(100, (remainingMs / TAP_REVEAL_MS) * 100));
+
   return (
-    <div>
+    <div className="screen-enter">
       <div className="crimson-ribbon">
         <h2>{t('secretCardTitle')}</h2>
         <span className="small-text" style={{ color: 'var(--brass-light)' }}>
@@ -80,38 +165,41 @@ export const SecretRoleCard: React.FC<SecretRoleCardProps> = ({ view }) => {
             <p
               style={{
                 fontFamily: 'var(--font-display)',
-                fontSize: '0.92rem',
-                letterSpacing: '0.06em',
+                fontSize: '0.9rem',
+                letterSpacing: '0.04em',
                 color: 'var(--brass-light)',
-                margin: '0.2rem 0 0.4rem',
+                margin: '0.2rem 0 0.45rem',
               }}
             >
-              {t('secretSealedHint')}
+              {t('holdOrTapHint')}
             </p>
             <button
               type="button"
               className="wax-seal-btn"
-              onClick={() => setRevealed(true)}
+              onPointerDown={handleSealPointerDown}
+              onClick={handleSealClick}
+              onContextMenu={(e) => e.preventDefault()}
               data-testid="reveal-role-btn"
             >
-              <WaxSealIcon size={50} />
+              <WaxSealIcon size={54} />
               <span
                 style={{
                   fontFamily: 'var(--font-display)',
-                  fontSize: '0.68rem',
+                  fontSize: '0.7rem',
                   fontWeight: 700,
                   marginTop: '0.25rem',
+                  padding: '0 0.4rem',
                 }}
               >
                 {t('holdToReveal')}
               </span>
             </button>
-            <p className="small-text" style={{ color: 'var(--parchment-deep)', margin: '0.35rem 0 0' }}>
+            <p className="small-text" style={{ color: '#dfd0b0', margin: '0.35rem 0 0' }}>
               {t('autoHideNote')}
             </p>
           </div>
         ) : (
-          <div data-testid="revealed-role-content">
+          <div className="secret-revealed-body" data-testid="revealed-role-content">
             {me.wasConverted && me.originalFaction && (
               <div
                 className="notice-box cult"
@@ -128,13 +216,13 @@ export const SecretRoleCard: React.FC<SecretRoleCardProps> = ({ view }) => {
             )}
 
             <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '0.5rem' }}>
-              <FactionIcon faction={faction} size={86} />
+              <FactionIcon faction={faction} size={88} />
             </div>
 
             <h2
               style={{
                 fontFamily: 'var(--font-display)',
-                fontSize: '1.55rem',
+                fontSize: '1.6rem',
                 margin: '0.2rem 0 0.35rem',
                 color: 'var(--ink-primary)',
               }}
@@ -164,7 +252,11 @@ export const SecretRoleCard: React.FC<SecretRoleCardProps> = ({ view }) => {
                 ) : (
                   <div className="badge-row" style={{ marginTop: '0.45rem' }}>
                     {me.knownPirates.map((p) => (
-                      <span key={p.id} className="badge badge-faction-pirate" style={{ fontSize: '0.82rem', padding: '0.28rem 0.65rem' }}>
+                      <span
+                        key={p.id}
+                        className="badge badge-faction-pirate"
+                        style={{ fontSize: '0.82rem', padding: '0.28rem 0.65rem' }}
+                      >
                         {p.name}
                       </span>
                     ))}
@@ -190,7 +282,11 @@ export const SecretRoleCard: React.FC<SecretRoleCardProps> = ({ view }) => {
                 ) : (
                   <div className="badge-row" style={{ marginTop: '0.45rem' }}>
                     {me.knownCultists.map((c) => (
-                      <span key={c.id} className="badge badge-faction-cultist" style={{ fontSize: '0.82rem', padding: '0.28rem 0.65rem' }}>
+                      <span
+                        key={c.id}
+                        className="badge badge-faction-cultist"
+                        style={{ fontSize: '0.82rem', padding: '0.28rem 0.65rem' }}
+                      >
                         {c.name}
                       </span>
                     ))}
@@ -215,7 +311,10 @@ export const SecretRoleCard: React.FC<SecretRoleCardProps> = ({ view }) => {
                   {t('yourCultLeaderTitle')}
                 </strong>
                 <div className="badge-row" style={{ marginTop: '0.4rem' }}>
-                  <span className="badge badge-faction-cult_leader" style={{ fontSize: '0.85rem', padding: '0.28rem 0.65rem' }}>
+                  <span
+                    className="badge badge-faction-cult_leader"
+                    style={{ fontSize: '0.85rem', padding: '0.28rem 0.65rem' }}
+                  >
                     {me.knownCultLeader.name}
                   </span>
                 </div>
@@ -255,14 +354,31 @@ export const SecretRoleCard: React.FC<SecretRoleCardProps> = ({ view }) => {
               </div>
             )}
 
-            <button
-              type="button"
-              className="btn btn-outline btn-block"
-              onClick={() => setRevealed(false)}
-              data-testid="hide-role-btn"
-            >
-              {t('hideRole')}
-            </button>
+            {revealMode === 'hold' ? (
+              <p
+                className="small-text muted"
+                style={{ fontFamily: 'var(--font-display)', fontWeight: 700, margin: '0.4rem 0 0' }}
+              >
+                {t('releaseToHide')}
+              </p>
+            ) : (
+              <>
+                <div className="countdown-track" aria-hidden="true">
+                  <div className="countdown-fill" style={{ width: `${countdownPct}%` }} />
+                </div>
+                <div className="small-text muted" style={{ marginBottom: '0.6rem' }}>
+                  {t('autoHideCountdown', { seconds: remainingSec })}
+                </div>
+                <button
+                  type="button"
+                  className="btn btn-outline btn-block"
+                  onClick={conceal}
+                  data-testid="hide-role-btn"
+                >
+                  {t('hideRole')}
+                </button>
+              </>
+            )}
           </div>
         )}
       </div>

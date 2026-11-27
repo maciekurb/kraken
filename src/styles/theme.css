@@ -1,40 +1,84 @@
 :root {
-  /* Authentic Feed the Kraken Board Game Palette */
+  /* Authentic Feed the Kraken Board Game Palette — Parchment Daylight */
   --parchment-bg: #efe4cd;
-  --parchment-card: #f7efde;
+  --parchment-card: #f8f0df;
   --parchment-deep: #dfd0b0;
   --parchment-border: #bfa87e;
+  --surface-input: #fffdf7;
+  --surface-hover: #fffaf0;
+  --surface-selected: #fff3f3;
+  --surface-subtle: rgba(50, 31, 20, 0.075);
+  --surface-eliminated: #e5dac6;
 
   --wood-dark: #1d120c;
   --wood-mid: #321f14;
   --wood-light: #4d301e;
 
-  --crimson-banner: #641d22;
+  --crimson-banner: #6b1f25;
   --crimson-deep: #481317;
-  --crimson-accent: #8c232b;
+  --crimson-accent: #8f262e;
 
   --brass-gold: #c99b3b;
-  --brass-light: #efd287;
+  --brass-light: #f2d78e;
   --brass-dark: #8c661c;
 
   --ink-primary: #211610;
-  --ink-secondary: #4e3b2c;
-  --ink-muted: #76614d;
+  --ink-secondary: #4a3728;
+  --ink-muted: #6c5743;
 
   /* Factions */
-  --sailor-blue: #1c5885;
+  --sailor-blue: #1a5480;
   --sailor-light: #dcecf7;
   --pirate-red: #8c1d24;
   --pirate-light: #f8dfdf;
   --cult-gold: #b48a26;
   --cult-gold-light: #faf1d4;
-  --cultist-green: #1d6447;
+  --cult-gold-ink: #664909;
+  --cultist-green: #1b6043;
   --cultist-light: #d9efe4;
 
   /* Map Actions Teal */
   --ocean-teal: #498d9e;
-  --ocean-dark: #255666;
+  --ocean-dark: #21505f;
   --ocean-light: #def0f4;
+
+  /* Revealed Secret Card Gradients */
+  --card-sailor-bg: linear-gradient(160deg, #f3f9fd 0%, #d4e8f7 100%);
+  --card-pirate-bg: linear-gradient(160deg, #fdf3f3 0%, #f5d4d6 100%);
+  --card-cult-leader-bg: linear-gradient(160deg, #fdfaf0 0%, #f2e1ad 100%);
+  --card-cultist-bg: linear-gradient(160deg, #f0faf5 0%, #c8ebd9 100%);
+
+  /* Badges */
+  --badge-flogged-bg: #f5e6d3;
+  --badge-flogged-ink: #6e3b17;
+  --badge-flogged-border: #c28e5d;
+  --badge-tongue-bg: #f9dfe1;
+  --badge-tongue-ink: #7c1820;
+  --badge-tongue-border: #c8646c;
+  --badge-elim-bg: #2b221e;
+  --badge-elim-ink: #e5d8c8;
+  --badge-elim-border: #57453d;
+
+  /* Notice & Backdrop */
+  --notice-crimson-bg: rgba(107, 31, 37, 0.09);
+  --notice-gold-bg: rgba(180, 138, 38, 0.15);
+  --notice-ocean-bg: rgba(73, 141, 158, 0.13);
+  --notice-cult-bg: rgba(29, 100, 71, 0.14);
+  --overlay-backdrop: rgba(16, 9, 5, 0.78);
+  --table-highlight-bg: rgba(201, 155, 59, 0.26);
+
+  /* Textures */
+  --page-bg-pattern:
+    radial-gradient(ellipse at 50% 0%, rgba(255, 250, 236, 0.6) 0%, transparent 65%),
+    radial-gradient(ellipse at 100% 100%, rgba(164, 132, 86, 0.25) 0%, transparent 60%),
+    repeating-linear-gradient(
+      0deg,
+      rgba(130, 100, 60, 0.025) 0px,
+      rgba(130, 100, 60, 0.025) 1px,
+      transparent 1px,
+      transparent 4px
+    );
+  --hero-glow: radial-gradient(circle at 50% 0%, rgba(201, 155, 59, 0.24) 0%, transparent 72%);
 
   /* Typography */
   --font-display: 'Cinzel', Georgia, serif;
@@ -42,9 +86,99 @@
   --font-body: 'Alegreya', Georgia, 'Times New Roman', serif;
 
   /* Radii & Elevation */
-  --radius-sm: 6px;
-  --radius-md: 12px;
+  --radius-sm: 8px;
+  --radius-md: 13px;
   --radius-lg: 18px;
-  --shadow-card: 0 4px 14px rgba(29, 18, 12, 0.16), inset 0 1px 0 rgba(255, 250, 238, 0.7);
-  --shadow-heavy: 0 12px 32px rgba(18, 10, 6, 0.45);
+  --shadow-card: 0 4px 14px rgba(29, 18, 12, 0.14), inset 0 1px 0 rgba(255, 250, 238, 0.75);
+  --shadow-heavy: 0 14px 36px rgba(14, 8, 4, 0.48);
+  --focus-ring: 0 0 0 3px rgba(201, 155, 59, 0.45);
+}
+
+/* ============================================================================
+   CANDLELIGHT DARK MODE — Captain's Cabin (warm mahogany, lantern amber, cream)
+   ============================================================================ */
+:root[data-theme='dark'] {
+  --parchment-bg: #17100b;
+  --parchment-card: #231912;
+  --parchment-deep: #32241a;
+  --parchment-border: #5a432f;
+  --surface-input: #1b130e;
+  --surface-hover: #2d2017;
+  --surface-selected: #381c1e;
+  --surface-subtle: rgba(239, 210, 135, 0.07);
+  --surface-eliminated: #1c1510;
+
+  --wood-dark: #110a06;
+  --wood-mid: #23150d;
+  --wood-light: #3d2517;
+
+  --crimson-banner: #7a232b;
+  --crimson-deep: #4e1419;
+  --crimson-accent: #9c2e38;
+
+  --brass-gold: #d6a645;
+  --brass-light: #f4dc96;
+  --brass-dark: #a67c2c;
+
+  --ink-primary: #f4e8d1;
+  --ink-secondary: #d7c3a3;
+  --ink-muted: #ac9475;
+
+  /* Dark-adapted high-contrast faction tokens */
+  --sailor-blue: #7ac0ef;
+  --sailor-light: #162f42;
+  --pirate-red: #f28d94;
+  --pirate-light: #3b171b;
+  --cult-gold: #e6bd5c;
+  --cult-gold-light: #352910;
+  --cult-gold-ink: #f4dc96;
+  --cultist-green: #6ad3a6;
+  --cultist-light: #133326;
+
+  /* Map Actions Teal */
+  --ocean-teal: #65b2c5;
+  --ocean-dark: #255a6b;
+  --ocean-light: #15313a;
+
+  /* Revealed Secret Card Gradients (rich dark jewel tones) */
+  --card-sailor-bg: linear-gradient(160deg, #162c3d 0%, #101f2c 100%);
+  --card-pirate-bg: linear-gradient(160deg, #3a171b 0%, #240d10 100%);
+  --card-cult-leader-bg: linear-gradient(160deg, #362910 0%, #231908 100%);
+  --card-cultist-bg: linear-gradient(160deg, #123325 0%, #0b2017 100%);
+
+  /* Badges */
+  --badge-flogged-bg: #362315;
+  --badge-flogged-ink: #f0be90;
+  --badge-flogged-border: #8b5c34;
+  --badge-tongue-bg: #3c181d;
+  --badge-tongue-ink: #f49ca3;
+  --badge-tongue-border: #8e3841;
+  --badge-elim-bg: #15100d;
+  --badge-elim-ink: #c6b6a2;
+  --badge-elim-border: #4d3d33;
+
+  /* Notice & Backdrop */
+  --notice-crimson-bg: rgba(156, 46, 56, 0.2);
+  --notice-gold-bg: rgba(214, 166, 69, 0.16);
+  --notice-ocean-bg: rgba(101, 178, 197, 0.16);
+  --notice-cult-bg: rgba(106, 211, 166, 0.14);
+  --overlay-backdrop: rgba(8, 5, 3, 0.84);
+  --table-highlight-bg: rgba(214, 166, 69, 0.22);
+
+  /* Textures */
+  --page-bg-pattern:
+    radial-gradient(ellipse at 50% 0%, rgba(214, 166, 69, 0.11) 0%, transparent 62%),
+    radial-gradient(ellipse at 100% 100%, rgba(122, 35, 43, 0.14) 0%, transparent 58%),
+    repeating-linear-gradient(
+      0deg,
+      rgba(255, 224, 160, 0.018) 0px,
+      rgba(255, 224, 160, 0.018) 1px,
+      transparent 1px,
+      transparent 4px
+    );
+  --hero-glow: radial-gradient(circle at 50% 0%, rgba(214, 166, 69, 0.18) 0%, transparent 72%);
+
+  --shadow-card: 0 6px 18px rgba(0, 0, 0, 0.42), inset 0 1px 0 rgba(244, 220, 150, 0.08);
+  --shadow-heavy: 0 18px 44px rgba(0, 0, 0, 0.72);
+  --focus-ring: 0 0 0 3px rgba(244, 220, 150, 0.45);
 }

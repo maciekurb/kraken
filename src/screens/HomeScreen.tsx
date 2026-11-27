@@ -89,53 +89,16 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
   };
 
   return (
-    <div>
+    <div className="screen-enter">
       {/* Hero Banner */}
-      <div
-        className="parchment-card brass center"
-        style={{
-          background:
-            'radial-gradient(circle at 50% 0%, rgba(201,155,59,0.22) 0%, transparent 70%), var(--parchment-card)',
-        }}
-      >
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            gap: '0.65rem',
-            marginBottom: '0.45rem',
-          }}
-        >
+      <div className="parchment-card brass center hero-card">
+        <div className="hero-emblems">
           <SailorIcon size={40} />
           <CultLeaderIcon size={54} />
           <PirateIcon size={40} />
         </div>
-        <h1
-          style={{
-            fontFamily: 'var(--font-pirate)',
-            fontSize: '2.15rem',
-            letterSpacing: '0.03em',
-            color: 'var(--crimson-banner)',
-            margin: '0 0 0.15rem',
-            lineHeight: 1.08,
-          }}
-        >
-          {t('appTitle')}
-        </h1>
-        <div
-          style={{
-            fontFamily: 'var(--font-display)',
-            fontSize: '0.82rem',
-            fontWeight: 700,
-            color: 'var(--brass-dark)',
-            letterSpacing: '0.08em',
-            textTransform: 'uppercase',
-            marginBottom: '0.35rem',
-          }}
-        >
-          {t('appSubtitle')}
-        </div>
+        <h1 className="hero-title">{t('appTitle')}</h1>
+        <div className="hero-subtitle">{t('appSubtitle')}</div>
         <p className="muted" style={{ margin: 0 }}>
           {t('tagline')}
         </p>
@@ -178,7 +141,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
           <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, marginBottom: '0.25rem' }}>
             {t('resumeTitle')}
           </div>
-          <p className="small-text" style={{ margin: '0 0 0.65rem' }}>
+          <p className="small-text" style={{ margin: '0 0 0.7rem' }}>
             {t('resumeDesc', {
               code: savedSession.roomCode,
               name: savedSession.playerName,
@@ -208,9 +171,11 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
 
       {/* Host / Join Switcher */}
       <div className="parchment-card">
-        <div className="pill-tabs">
+        <div className="pill-tabs" role="tablist">
           <button
             type="button"
+            role="tab"
+            aria-selected={mode === 'host'}
             className={mode === 'host' ? 'active' : ''}
             onClick={() => {
               setMode('host');
@@ -222,6 +187,8 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
           </button>
           <button
             type="button"
+            role="tab"
+            aria-selected={mode === 'join'}
             className={mode === 'join' ? 'active' : ''}
             onClick={() => {
               setMode('join');
@@ -240,6 +207,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
               id="player-name-input"
               type="text"
               maxLength={24}
+              autoComplete="nickname"
               placeholder={t('namePlaceholder')}
               value={name}
               onChange={(e) => setName(e.target.value)}
@@ -255,6 +223,10 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
                 id="room-code-input"
                 type="text"
                 maxLength={8}
+                autoCapitalize="characters"
+                autoComplete="off"
+                autoCorrect="off"
+                spellCheck={false}
                 className="room-code-input"
                 placeholder={t('roomCodePlaceholder')}
                 value={roomCode}
@@ -266,34 +238,34 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
           ) : (
             <div className="field">
               <label>{t('voyageModeTitle')}</label>
-              <div className="action-grid">
+              <div className="action-grid" role="radiogroup" aria-label={t('voyageModeTitle')}>
                 <button
                   type="button"
+                  role="radio"
+                  aria-checked={voyageMode === 'short'}
                   className={`action-tile ${voyageMode === 'short' ? 'selected' : ''}`}
-                  style={
-                    voyageMode === 'short'
-                      ? { borderColor: 'var(--crimson-banner)', borderWidth: 2 }
-                      : undefined
-                  }
                   onClick={() => setVoyageMode('short')}
                 >
                   <span>{t('voyageShort')}</span>
-                  <span className="muted" style={{ fontSize: '0.72rem', fontFamily: 'var(--font-body)', fontWeight: 400 }}>
+                  <span
+                    className="muted"
+                    style={{ fontSize: '0.74rem', fontFamily: 'var(--font-body)', fontWeight: 400 }}
+                  >
                     {t('voyageShortHint')}
                   </span>
                 </button>
                 <button
                   type="button"
+                  role="radio"
+                  aria-checked={voyageMode === 'long'}
                   className={`action-tile ${voyageMode === 'long' ? 'selected' : ''}`}
-                  style={
-                    voyageMode === 'long'
-                      ? { borderColor: 'var(--crimson-banner)', borderWidth: 2 }
-                      : undefined
-                  }
                   onClick={() => setVoyageMode('long')}
                 >
                   <span>{t('voyageLong')}</span>
-                  <span className="muted" style={{ fontSize: '0.72rem', fontFamily: 'var(--font-body)', fontWeight: 400 }}>
+                  <span
+                    className="muted"
+                    style={{ fontSize: '0.74rem', fontFamily: 'var(--font-body)', fontWeight: 400 }}
+                  >
                     {t('voyageLongHint')}
                   </span>
                 </button>

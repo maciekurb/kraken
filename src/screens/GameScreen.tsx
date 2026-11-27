@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { ConfirmDialog } from '../components/ConfirmDialog';
 import { logger } from '../debug/logger';
 import { getMutinyThreshold, getOffDutyCount } from '../engine/rules';
 import type { PlayerView, PublicEventLogEntry, PublicFactionGroup, RitualType } from '../engine/types';
@@ -28,6 +29,11 @@ interface GameScreenProps {
 
 type GameTab = 'secret' | 'crew' | 'aid';
 
+type PendingConfirm =
+  | { kind: 'overboard'; playerId: string; playerName: string }
+  | { kind: 'end_voyage'; winner: PublicFactionGroup; reason: 'port' | 'kraken_space'; label: string }
+  | { kind: 'leave' };
+
 export const GameScreen: React.FC<GameScreenProps> = ({
   view,
   hostActions,
@@ -37,6 +43,9 @@ export const GameScreen: React.FC<GameScreenProps> = ({
   const { t } = useI18n();
   const [tab, setTab] = useState<GameTab>('secret');
   const [showManualRituals, setShowManualRituals] = useState(false);
+  const [endVoyageOpen, setEndVoyageOpen] = useState(false);
+  const [eventLogOpen, setEventLogOpen] = useState(false);
+  const [pendingConfirm, setPendingConfirm] = useState<PendingConfirm | null>(null);
 
   const mutinyGuns = getMutinyThreshold(view.players.length);
   const offDuty = getOffDutyCount(view.players.length);
@@ -73,37 +82,37 @@ export const GameScreen: React.FC<GameScreenProps> = ({
 
   if (view.phase === 'ended') {
     return (
-      <div className="main-content no-nav">
+      <main className="main-content no-nav">
         <GameOverOverlay view={view} hostActions={hostActions} onLeave={onLeave} />
-      </div>
+      </main>
     );
   }
 
+  const executeConfirm = () => {
+    if (!pendingConfirm) return;
+    if (pendingConfirm.kind === 'overboard') {
+      hostActions.markPlayerOverboard(pendingConfirm.playerId);
+    } else if (pendingConfirm.kind === 'end_voyage') {
+      hostActions.triggerGameEnd(pendingConfirm.winner, pendingConfirm.reason);
+    } else if (pendingConfirm.kind === 'leave') {
+      onLeave();
+    }
+    setPendingConfirm(null);
+  };
+
   return (
     <>
-      <div className="main-content">
-        {/* Quick Rules Strip */}
-        <div
-          className="row-between small-text"
-          style={{
-            background: 'rgba(50, 31, 20, 0.08)',
-            border: '1px solid var(--parchment-border)',
-            borderRadius: 'var(--radius-sm)',
-            padding: '0.35rem 0.65rem',
-            marginBottom: '0.65rem',
-            fontFamily: 'var(--font-display)',
-            fontSize: '0.73rem',
-          }}
-        >
+      <main className="main-content">
+        {/* Quick Rules Strip (room code lives in the top bar) */}
+        <div className="quick-rules-strip">
           <span>{t('mutinyThresholdLabel', { count: mutinyGuns })}</span>
           <span>{t('offDutyCountLabel', { count: offDuty })}</span>
-          <span>{view.roomCode}</span>
         </div>
 
         {tab === 'secret' && <SecretRoleCard view={view} />}
 
         {tab === 'crew' && (
-          <div>
+          <div className="screen-enter">
             <div className="crimson-ribbon">
               <h2>{t('tabCrew')}</h2>
               <span className="small-text" style={{ color: 'var(--brass-light)' }}>
@@ -120,7 +129,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({
                     fontWeight: 800,
                     fontSize: '0.9rem',
                     marginBottom: '0.65rem',
-                    color: 'var(--crimson-banner)',
+                    color: 'var(--brass-dark)',
                   }}
                 >
                   {t('tableActionsTitle')}
@@ -148,11 +157,11 @@ export const GameScreen: React.FC<GameScreenProps> = ({
                 {/* Map Actions 2x2 Grid */}
                 <div
                   className="small-text muted"
-                  style={{ fontFamily: 'var(--font-display)', marginBottom: '0.4rem' }}
+                  style={{ fontFamily: 'var(--font-display)', marginBottom: '0.45rem' }}
                 >
                   {t('mapActionsTitle')}
                 </div>
-                <div className="action-grid" style={{ marginBottom: '0.85rem' }}>
+                <div className="action-grid" style={{ marginBottom: '0.9rem' }}>
                   <button
                     type="button"
                     className="action-tile"
@@ -198,7 +207,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({
                 {/* Cult Rituals Section */}
                 <div
                   className="small-text muted"
-                  style={{ fontFamily: 'var(--font-display)', marginBottom: '0.4rem' }}
+                  style={{ fontFamily: 'var(--font-display)', marginBottom: '0.45rem' }}
                 >
                   {t('cultRitualsTitle', { remaining: view.ritualDeckRemaining })}
                 </div>
@@ -217,6 +226,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({
                   <button
                     type="button"
                     className="btn btn-outline btn-sm btn-block"
+                    aria-expanded={showManualRituals}
                     onClick={() => setShowManualRituals((v) => !v)}
                     data-testid="toggle-manual-rituals-btn"
                   >
@@ -228,7 +238,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({
                       style={{
                         display: 'grid',
                         gridTemplateColumns: 'repeat(3, 1fr)',
-                        gap: '0.4rem',
+                        gap: '0.42rem',
                       }}
                     >
                       {(['conversion', 'gun_stash', 'enlightenment'] as RitualType[]).map((rt) => (
@@ -236,7 +246,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({
                           key={rt}
                           type="button"
                           className="action-tile"
-                          style={{ padding: '0.5rem 0.25rem', fontSize: '0.7rem' }}
+                          style={{ padding: '0.55rem 0.25rem', fontSize: '0.7rem', minHeight: 74 }}
                           disabled={Boolean(view.activePhase)}
                           onClick={() => hostActions.startCultRitualManual(rt)}
                           data-testid={`manual-ritual-${rt}-btn`}
@@ -262,7 +272,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({
                     data-testid={`crew-row-${p.name}`}
                   >
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div className="row-gap">
+                      <div className="row-gap" style={{ flexWrap: 'wrap', gap: '0.35rem' }}>
                         <strong>{p.name}</strong>
                         {p.id === view.me.id && (
                           <span className="badge badge-searched">{t('youTag')}</span>
@@ -303,12 +313,12 @@ export const GameScreen: React.FC<GameScreenProps> = ({
                     </div>
 
                     {view.me.isHost && p.alive && (
-                      <div className="stack-sm" style={{ gap: '0.25rem' }}>
+                      <div className="stack-sm" style={{ gap: '0.3rem', flexShrink: 0 }}>
                         {!isCaptain && !p.tongueCut && (
                           <button
                             type="button"
                             className="btn btn-outline btn-sm"
-                            style={{ fontSize: '0.68rem', padding: '0.22rem 0.45rem' }}
+                            style={{ fontSize: '0.7rem', minHeight: 34, padding: '0.25rem 0.55rem' }}
                             onClick={() => hostActions.setCurrentCaptain(p.id)}
                           >
                             {t('badgeCaptain')}
@@ -317,12 +327,14 @@ export const GameScreen: React.FC<GameScreenProps> = ({
                         <button
                           type="button"
                           className="btn btn-danger-outline btn-sm"
-                          style={{ fontSize: '0.68rem', padding: '0.22rem 0.45rem' }}
-                          onClick={() => {
-                            if (window.confirm(t('markOverboardConfirm', { name: p.name }))) {
-                              hostActions.markPlayerOverboard(p.id);
-                            }
-                          }}
+                          style={{ fontSize: '0.7rem', minHeight: 34, padding: '0.25rem 0.55rem' }}
+                          onClick={() =>
+                            setPendingConfirm({
+                              kind: 'overboard',
+                              playerId: p.id,
+                              playerName: p.name,
+                            })
+                          }
                         >
                           {t('markOverboardBtn')}
                         </button>
@@ -333,82 +345,113 @@ export const GameScreen: React.FC<GameScreenProps> = ({
               })}
             </div>
 
-            {/* Host End Voyage Controls */}
+            {/* Collapsible Host End Voyage Controls (guards against accidental taps) */}
             {view.me.isHost && (
-              <div className="parchment-card">
-                <div
-                  style={{
-                    fontFamily: 'var(--font-display)',
-                    fontWeight: 700,
-                    fontSize: '0.86rem',
-                    marginBottom: '0.5rem',
-                  }}
+              <div className="parchment-card collapsible-card">
+                <button
+                  type="button"
+                  className="collapsible-trigger"
+                  aria-expanded={endVoyageOpen}
+                  onClick={() => setEndVoyageOpen((v) => !v)}
+                  data-testid="toggle-end-voyage-btn"
                 >
-                  {t('endVoyageTitle')}
-                </div>
-                <div className="stack-sm">
-                  <button
-                    type="button"
-                    className="btn btn-ocean btn-sm btn-block"
-                    onClick={() => hostActions.triggerGameEnd('sailor', 'port')}
-                    data-testid="end-sailors-win-btn"
-                  >
-                    {t('endSailorsWin')}
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn-primary btn-sm btn-block"
-                    onClick={() => hostActions.triggerGameEnd('pirate', 'port')}
-                    data-testid="end-pirates-win-btn"
-                  >
-                    {t('endPiratesWin')}
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn-cult btn-sm btn-block"
-                    onClick={() => hostActions.triggerGameEnd('cult', 'kraken_space')}
-                    data-testid="end-cult-win-btn"
-                  >
-                    {t('endCultWin')}
-                  </button>
-                </div>
+                  <span>{t('endVoyageTitle')}</span>
+                  <span className="collapsible-meta" aria-hidden="true">
+                    {endVoyageOpen ? '▲' : '▼'}
+                  </span>
+                </button>
+                {endVoyageOpen && (
+                  <div className="collapsible-body stack-sm">
+                    <button
+                      type="button"
+                      className="btn btn-ocean btn-sm btn-block"
+                      onClick={() =>
+                        setPendingConfirm({
+                          kind: 'end_voyage',
+                          winner: 'sailor',
+                          reason: 'port',
+                          label: t('endSailorsWin'),
+                        })
+                      }
+                      data-testid="end-sailors-win-btn"
+                    >
+                      {t('endSailorsWin')}
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-primary btn-sm btn-block"
+                      onClick={() =>
+                        setPendingConfirm({
+                          kind: 'end_voyage',
+                          winner: 'pirate',
+                          reason: 'port',
+                          label: t('endPiratesWin'),
+                        })
+                      }
+                      data-testid="end-pirates-win-btn"
+                    >
+                      {t('endPiratesWin')}
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-cult btn-sm btn-block"
+                      onClick={() =>
+                        setPendingConfirm({
+                          kind: 'end_voyage',
+                          winner: 'cult',
+                          reason: 'kraken_space',
+                          label: t('endCultWin'),
+                        })
+                      }
+                      data-testid="end-cult-win-btn"
+                    >
+                      {t('endCultWin')}
+                    </button>
+                  </div>
+                )}
               </div>
             )}
 
-            {/* Captain's Public Log */}
+            {/* Collapsible Captain's Public Log */}
             {view.publicLog.length > 0 && (
-              <div className="parchment-card">
-                <div
-                  style={{
-                    fontFamily: 'var(--font-display)',
-                    fontWeight: 700,
-                    fontSize: '0.86rem',
-                    marginBottom: '0.45rem',
-                  }}
+              <div className="parchment-card collapsible-card">
+                <button
+                  type="button"
+                  className="collapsible-trigger"
+                  aria-expanded={eventLogOpen}
+                  onClick={() => setEventLogOpen((v) => !v)}
+                  data-testid="toggle-event-log-btn"
                 >
-                  {t('eventLogTitle')}
-                </div>
-                <div className="stack-sm">
-                  {view.publicLog.slice(0, 12).map((entry) => (
-                    <div
-                      key={entry.id}
-                      className="small-text"
-                      style={{
-                        borderBottom: '1px solid var(--parchment-deep)',
-                        paddingBottom: '0.35rem',
-                      }}
-                    >
-                      {formatLog(entry)}
-                    </div>
-                  ))}
-                </div>
+                  <span>{t('eventLogTitle')}</span>
+                  <span className="collapsible-meta">
+                    <span>{t('showLogCount', { count: view.publicLog.length })}</span>
+                    <span aria-hidden="true">{eventLogOpen ? '▲' : '▼'}</span>
+                  </span>
+                </button>
+                {eventLogOpen && (
+                  <div className="collapsible-body stack-sm">
+                    {view.publicLog.slice(0, 15).map((entry) => (
+                      <div
+                        key={entry.id}
+                        className="small-text"
+                        style={{
+                          borderBottom: '1px solid var(--parchment-deep)',
+                          paddingBottom: '0.38rem',
+                        }}
+                      >
+                        {formatLog(entry)}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
 
             <button
               type="button"
               className="btn btn-danger-outline btn-sm btn-block"
-              onClick={onLeave}
+              onClick={() => setPendingConfirm({ kind: 'leave' })}
+              data-testid="leave-game-btn"
             >
               {t('leaveRoom')}
             </button>
@@ -421,12 +464,14 @@ export const GameScreen: React.FC<GameScreenProps> = ({
             defaultVoyageMode={view.voyageMode}
           />
         )}
-      </div>
+      </main>
 
       {/* Bottom Tab Bar */}
-      <nav className="bottom-nav" aria-label="Game navigation">
+      <nav className="bottom-nav" aria-label="Game navigation" role="tablist">
         <button
           type="button"
+          role="tab"
+          aria-selected={tab === 'secret'}
           className={tab === 'secret' ? 'active' : ''}
           onClick={() => {
             logger.debug('UI', 'GameScreen tab -> secret');
@@ -439,6 +484,8 @@ export const GameScreen: React.FC<GameScreenProps> = ({
         </button>
         <button
           type="button"
+          role="tab"
+          aria-selected={tab === 'crew'}
           className={tab === 'crew' ? 'active' : ''}
           onClick={() => {
             logger.debug('UI', 'GameScreen tab -> crew');
@@ -451,6 +498,8 @@ export const GameScreen: React.FC<GameScreenProps> = ({
         </button>
         <button
           type="button"
+          role="tab"
+          aria-selected={tab === 'aid'}
           className={tab === 'aid' ? 'active' : ''}
           onClick={() => {
             logger.debug('UI', 'GameScreen tab -> aid');
@@ -463,11 +512,51 @@ export const GameScreen: React.FC<GameScreenProps> = ({
         </button>
       </nav>
 
-      {/* Active Synced P2P Phase Overlays */}
+      {/* Active Synced P2P Phase Overlays (portaled to document.body) */}
       <PhaseOverlays
         view={view}
         hostActions={hostActions}
         playerActions={playerActions}
+      />
+
+      {/* Styled In-App Confirmation Dialog for Destructive Actions */}
+      <ConfirmDialog
+        open={Boolean(pendingConfirm)}
+        title={
+          pendingConfirm?.kind === 'overboard'
+            ? t('confirmOverboardTitle')
+            : pendingConfirm?.kind === 'end_voyage'
+              ? t('confirmEndVoyageTitle')
+              : t('confirmLeaveTitle')
+        }
+        description={
+          pendingConfirm?.kind === 'overboard'
+            ? t('markOverboardConfirm', { name: pendingConfirm.playerName })
+            : pendingConfirm?.kind === 'end_voyage'
+              ? t('confirmEndVoyageDesc', { winner: pendingConfirm.label })
+              : view.me.isHost
+                ? t('confirmLeaveHostDesc')
+                : t('confirmLeaveDesc')
+        }
+        confirmLabel={
+          pendingConfirm?.kind === 'overboard'
+            ? t('confirmOverboardBtn')
+            : pendingConfirm?.kind === 'end_voyage'
+              ? t('confirmEndVoyageBtn')
+              : t('confirmLeaveBtn')
+        }
+        tone={
+          pendingConfirm?.kind === 'end_voyage'
+            ? pendingConfirm.winner === 'sailor'
+              ? 'ocean'
+              : pendingConfirm.winner === 'cult'
+                ? 'cult'
+                : 'primary'
+            : 'danger'
+        }
+        onConfirm={executeConfirm}
+        onCancel={() => setPendingConfirm(null)}
+        testId="game-confirm-dialog"
       />
     </>
   );
